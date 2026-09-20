@@ -7,6 +7,7 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { setAllOrderData } from "@/redux/orderSlice";
 import { motion } from "framer-motion";
 import { FiTruck } from "react-icons/fi";
+import HomeButton from "@/component/HomeButton";
 
 export default function OrdersPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -200,13 +201,16 @@ export default function OrdersPage() {
     <div className="min-h-screen p-6 bg-gradient-to-br from-black via-gray-900 to-black text-white">
       <div className="max-w-6xl mx-auto">
         {/* HEADER */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">My Orders</h1>
             <p className="text-sm text-gray-300">All orders placed by you</p>
           </div>
 
-          <div className="text-sm text-gray-300">{userOrders.length} orders</div>
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-gray-300">{userOrders.length} orders</div>
+            <HomeButton />
+          </div>
         </div>
 
         {/* ---------------------- */}
