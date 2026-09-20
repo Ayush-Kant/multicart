@@ -14,6 +14,7 @@ import {
   validateAddressInput,
   toOrderAddress,
 } from "@/lib/address-validation";
+import { releaseUnpaidOrderStock } from "@/lib/cart-checkout";
 import {
   createRazorpayOrder,
   getRazorpayKeyId,
@@ -25,7 +26,6 @@ export async function POST(req: NextRequest) {
     productId: string;
     quantity: number;
   }[] = [];
-  let userUpdated = false;
   let razorpayOrderId: string | null = null;
 
   try {
@@ -248,15 +248,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    user.cart = [];
-    user.orders = user.orders || [];
-
-    for (const orderId of createdOrderIds) {
-      user.orders.push(orderId as any);
-    }
-
-    await user.save();
-    userUpdated = true;
+    /*
+     * IMPORTANT:
+     * Keep the customer's cart untouched until Razorpay payment is
+     * successfully captured and verified. The cart is finalized only
+     * from the payment verification/webhook path.
+     */
 
     const razorpayOrder = await createRazorpayOrder({
       amount: amountInPaise,
@@ -315,35 +312,6 @@ export async function POST(req: NextRequest) {
         } catch {}
       }
 
-      if (userUpdated) {
-        try {
-          const rollbackUser = await User.findById(session?.user?.id);
-
-          if (rollbackUser) {
-            const created = new Set(createdOrderIds);
-
-            rollbackUser.orders = (rollbackUser.orders || []).filter(
-              (id: any) => !created.has(String(id))
-            );
-
-            const originalCart: any[] = [];
-
-            for (const productId of stockReservations) {
-              originalCart.push({
-                product: productId.productId,
-                quantity: productId.quantity,
-              });
-            }
-
-            rollbackUser.cart = [
-              ...(rollbackUser.cart || []),
-              ...originalCart,
-            ];
-
-            await rollbackUser.save();
-          }
-        } catch {}
-      }
     }
 
     console.error("❌ CART RAZORPAY ORDER ERROR:", error);
