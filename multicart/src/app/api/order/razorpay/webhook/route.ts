@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/db";
 import Order from "@/models/order.model";
 import { settlePaidOrder } from "@/lib/vendor-payout";
+import { finalizePaidOrdersForBuyer } from "@/lib/cart-checkout";
 
 const safeEqual = (expected: string, actual: string) => {
   const expectedBuffer = Buffer.from(expected, "utf8");
@@ -120,6 +121,13 @@ export async function POST(req: NextRequest) {
           payouts.push(payout);
         }
       }
+
+      const buyerId = String(orders[0].buyer);
+
+      await finalizePaidOrdersForBuyer(
+        buyerId,
+        orders
+      );
 
       return NextResponse.json(
         {
