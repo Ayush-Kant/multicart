@@ -160,6 +160,22 @@ export default function OrderSuccessPage() {
               </div>
             </div>
 
+            <div className="mt-5 border-t border-white/10 pt-4">
+              <p className="text-xs uppercase tracking-wide text-gray-500">
+                Delivery Address
+              </p>
+              <div className="mt-3 rounded-xl bg-white/5 border border-white/10 p-4 text-sm text-gray-300 space-y-1">
+                <p className="font-semibold text-white">
+                  {order.address?.name}
+                </p>
+                <p>{order.address?.phone}</p>
+                <p>{order.address?.address}</p>
+                {order.address?.pincode && (
+                  <p>Pincode: {order.address.pincode}</p>
+                )}
+              </div>
+            </div>
+
             <div className="mt-5 border-t border-white/10 pt-4 space-y-2 text-sm">
               <p className="text-xs uppercase tracking-wide text-gray-500">
                 Marketplace Settlement
