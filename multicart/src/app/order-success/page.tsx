@@ -1,45 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { FaCheckCircle, FaBox } from "react-icons/fa";
+import { FaBox, FaCheckCircle } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
 export default function OrderSuccessPage() {
   const router = useRouter();
 
-  const [order, setOrder] = useState<any>(null);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadOrder = async () => {
+    const loadOrders = async () => {
       try {
-        const orderId = new URLSearchParams(
+        const searchParams = new URLSearchParams(
           window.location.search
-        ).get("orderId");
+        );
 
-        if (!orderId) {
+        const orderId = searchParams.get("orderId");
+        const checkoutGroupId =
+          searchParams.get("checkoutGroupId");
+
+        if (!orderId && !checkoutGroupId) {
           setError("Order reference is missing.");
           return;
         }
 
         const response = await axios.get("/api/order/allOrder");
-        const orders = response.data.orders || [];
+        const allOrders = response.data.orders || [];
 
-        const matchedOrder = orders.find(
-          (item: any) => String(item._id) === String(orderId)
-        );
+        const matchedOrders = checkoutGroupId
+          ? allOrders.filter(
+              (item: any) =>
+                String(item.checkoutGroupId) ===
+                String(checkoutGroupId)
+            )
+          : allOrders.filter(
+              (item: any) =>
+                String(item._id) === String(orderId)
+            );
 
-        if (!matchedOrder) {
+        if (!matchedOrders.length) {
           setError(
             "The order was placed, but its invoice could not be loaded."
           );
           return;
         }
 
-        setOrder(matchedOrder);
+        setOrders(matchedOrders);
       } catch (requestError: any) {
         setError(
           requestError?.response?.data?.message ||
@@ -50,8 +61,29 @@ export default function OrderSuccessPage() {
       }
     };
 
-    loadOrder();
+    loadOrders();
   }, []);
+
+  const totals = useMemo(
+    () =>
+      orders.reduce(
+        (sum, order) => ({
+          products: sum.products + Number(order.productsTotal || 0),
+          delivery:
+            sum.delivery + Number(order.deliveryCharge || 0),
+          service:
+            sum.service + Number(order.serviceCharge || 0),
+          total: sum.total + Number(order.totalAmount || 0),
+        }),
+        {
+          products: 0,
+          delivery: 0,
+          service: 0,
+          total: 0,
+        }
+      ),
+    [orders]
+  );
 
   if (loading) {
     return (
@@ -63,7 +95,7 @@ export default function OrderSuccessPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-900 via-black to-gray-900 px-4 py-10 text-white">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.7 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -82,12 +114,15 @@ export default function OrderSuccessPage() {
             <FaBox size={30} className="text-blue-300" />
 
             <p>
-              Your order has been received and is now being processed.
+              {orders.length > 1
+                ? orders.length +
+                  " vendor orders were created successfully."
+                : "Your order has been received and is now being processed."}
             </p>
 
-            {order && (
+            {orders.length === 1 && (
               <p className="text-sm text-gray-400">
-                Order #{String(order._id).slice(-10)}
+                Order #{String(orders[0]._id).slice(-10)}
               </p>
             )}
           </div>
@@ -99,15 +134,57 @@ export default function OrderSuccessPage() {
           </div>
         )}
 
-        {order && (
+        {orders.length > 1 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            className="mt-6 rounded-2xl border border-white/10 bg-[#061526] p-6"
+          >
+            <h2 className="text-xl font-semibold">
+              Cart Checkout Summary
+            </h2>
+
+            <div className="mt-4 space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span>Products Total</span>
+                <span>₹ {totals.products}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Delivery</span>
+                <span>₹ {totals.delivery}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Service Charge</span>
+                <span>₹ {totals.service}</span>
+              </div>
+              <div className="flex justify-between border-t border-white/10 pt-3 text-lg font-bold">
+                <span>Total</span>
+                <span className="text-green-300">
+                  ₹ {totals.total}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {orders.map((order, orderIndex) => (
+          <motion.div
+            key={order._id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: orderIndex * 0.05 }}
             className="mt-6 bg-[#061526] border border-white/10 rounded-2xl p-6"
           >
-            <h2 className="text-xl font-semibold mb-4">
-              Order Invoice
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <h2 className="text-xl font-semibold">
+                {orders.length > 1
+                  ? "Vendor Order " + (orderIndex + 1)
+                  : "Order Invoice"}
+              </h2>
+              <p className="text-xs text-gray-500">
+                #{String(order._id).slice(-10)}
+              </p>
+            </div>
 
             <div className="space-y-3">
               {order.products?.map(
@@ -128,8 +205,10 @@ export default function OrderSuccessPage() {
 
                     <p className="font-semibold">
                       ₹{" "}
-                      {productItem.quantity *
-                        productItem.price}
+                      {(
+                        productItem.quantity *
+                        productItem.price
+                      ).toLocaleString("en-IN")}
                     </p>
                   </div>
                 )
@@ -153,7 +232,7 @@ export default function OrderSuccessPage() {
               </div>
 
               <div className="flex justify-between font-semibold text-lg border-t border-white/10 pt-3">
-                <span>Customer Total</span>
+                <span>Order Total</span>
                 <span className="text-green-300">
                   ₹ {order.totalAmount}
                 </span>
@@ -199,22 +278,29 @@ export default function OrderSuccessPage() {
                   {order.payoutStatus || "pending"}
                 </span>
               </div>
-
-              <p className="text-xs text-gray-500 pt-2">
-                Vendor settlement is simulated in demo mode. No bank transfer is executed.
-              </p>
             </div>
           </motion.div>
-        )}
+        ))}
 
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => router.push("/orders")}
-          className="mt-6 w-full py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold"
-        >
-          Go to Orders Page
-        </motion.button>
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push("/orders")}
+            className="w-full py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold"
+          >
+            Go to Orders Page
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push("/")}
+            className="w-full py-3 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-white font-semibold"
+          >
+            Continue Shopping
+          </motion.button>
+        </div>
       </div>
     </div>
   );
