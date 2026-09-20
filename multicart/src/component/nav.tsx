@@ -138,7 +138,11 @@ export default function Navbar({ user }: { user?: IUser }) {
             {/* Desktop location + links */}
             {currentUser.role === "user" && (
               <div className="hidden md:flex items-center gap-4 flex-1 min-w-0">
-                <HeaderLocation userId={String(currentUser._id || "")} />
+                <HeaderLocation
+                  userId={String(currentUser._id || "")}
+                  defaultRecipientName={currentUser.name}
+                  defaultPhone={currentUser.phone || ""}
+                />
 
                 <div className="flex gap-8 mx-auto">
                   <NavItem label="Home" path="/" router={router} />
@@ -209,6 +213,8 @@ export default function Navbar({ user }: { user?: IUser }) {
               {currentUser.role === "user" && (
                 <HeaderLocation
                   userId={String(currentUser._id || "")}
+                  defaultRecipientName={currentUser.name}
+                  defaultPhone={currentUser.phone || ""}
                   mobile
                 />
               )}
