@@ -48,9 +48,9 @@ export const validateVendorOnboardingInput = (
       "Business address must be at least 10 characters.";
   }
 
-  if (!/^\d[A-Z0-9]{14}$/.test(input.gstNumber)) {
+  if (!/^\d{2}[A-Z0-9]{13}$/.test(input.gstNumber)) {
     errors.gstNumber =
-      "GST number must be 15 characters and start with a digit.";
+      "GST number must be exactly 15 letters/numbers and start with two digits.";
   }
 
   if (
