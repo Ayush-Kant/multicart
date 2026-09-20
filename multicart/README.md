@@ -70,3 +70,22 @@ PLATFORM_FEE_PERCENT=5
 ```
 
 Set `PAYOUT_DEMO_MODE=false` only when a real payout provider and real verification workflow have been implemented in `src/lib/vendor-payout.ts`.
+
+## Delivery Address Book
+
+Customers can save multiple delivery addresses (up to 10) with Home, Work and Other labels. Each saved address stores recipient details, building/street/locality information, city, state, pincode and optional location coordinates.
+
+The address book supports both:
+- **Manual entry** — the customer enters the complete delivery address.
+- **Current location** — the browser asks for explicit location permission, the current coordinates are sent to the configured reverse-geocoding provider, and the returned address fields are shown for customer confirmation/editing before saving.
+
+Saved addresses can be edited, deleted, marked as the default address, and selected directly during checkout. The selected saved address is resolved server-side from the authenticated user's account before an order is created, and a complete snapshot is stored on the order.
+
+For the current demo implementation, reverse geocoding uses OpenStreetMap Nominatim through a server-side proxy. The provider URL is configurable so it can be replaced later:
+
+```env
+GEOCODING_REVERSE_URL=https://nominatim.openstreetmap.org/reverse
+GEOCODING_USER_AGENT=MultiCart/1.0 (delivery address lookup)
+```
+
+Use of browser geolocation requires explicit user permission and a secure context such as HTTPS (localhost is treated as a secure context by browsers). Reverse-geocoding requests are only made after the user presses **Use My Current Location**.
