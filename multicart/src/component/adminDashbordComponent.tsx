@@ -68,12 +68,16 @@ export default function AdminDashboardPage() {
 
   validOrders.forEach((order: any) => {
     gmv += Number(order.productsTotal || 0);
-    platformRevenue += Number(order.platformFee || 0);
+
+    if (order.isPaid) {
+      platformRevenue += Number(order.platformFee || 0);
+    }
 
     if (order.payoutStatus === "paid") {
       vendorEarnings += Number(order.vendorAmount || 0);
       paidOut += Number(order.vendorAmount || 0);
     } else if (
+      order.isPaid &&
       ["pending", "processing"].includes(order.payoutStatus)
     ) {
       pendingPayout += Number(order.vendorAmount || 0);
