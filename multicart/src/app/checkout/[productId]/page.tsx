@@ -5,6 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "axios";
 import { motion } from "framer-motion";
+import {
+  normalizeDeliveryAddress,
+  validateDeliveryAddress,
+  DeliveryAddressErrors,
+} from "@/lib/order-validation";
+import { calculateOrderCharges } from "@/lib/marketplace-finance";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -20,8 +26,11 @@ export default function CheckoutPage() {
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  const [errors, setErrors] = useState<
+    Partial<DeliveryAddressErrors>
+  >({});
+  const [submitError, setSubmitError] = useState("");
 
-  // Address
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -38,7 +47,8 @@ export default function CheckoutPage() {
       try {
         const res = await axios.get("/api/cart/get");
         const found = res.data.cart.find(
-          (i: any) => i.product._id === productId
+          (cartItem: any) =>
+            cartItem.product._id === productId
         );
 
         if (!found) {
@@ -47,11 +57,14 @@ export default function CheckoutPage() {
         }
 
         setItem(found);
+
         if (!found.product.payOnDelivery) {
           setPaymentMode("razorpay");
         }
-      } catch (err) {
-        console.error(err);
+      } catch {
+        setSubmitError(
+          "Unable to load the checkout item. Please return to your cart and try again."
+        );
       } finally {
         setLoading(false);
       }
@@ -70,55 +83,110 @@ export default function CheckoutPage() {
 
   if (!item) return null;
 
-  const productsTotal = item.product.price * item.quantity;
-  const deliveryCharge = item.product.freeDelivery ? 0 : 50;
-  const serviceCharge = 30;
-  const finalTotal =
-    productsTotal + deliveryCharge + serviceCharge;
+  const charges = calculateOrderCharges({
+    productPrice: item.product.price,
+    quantity: item.quantity,
+    freeDelivery: Boolean(item.product.freeDelivery),
+  });
 
   const codDisabled = !item.product.payOnDelivery;
 
+  const fieldClass = (field: keyof DeliveryAddressErrors) =>
+    `w-full p-3 rounded-xl bg-black/60 border text-white placeholder-gray-400
+    focus:outline-none focus:ring-2 focus:ring-blue-500
+    hover:border-white/40 transition ${
+      errors[field]
+        ? "border-red-500/70"
+        : "border-white/20"
+    }`;
+
+  const updateField = (
+    field: keyof DeliveryAddressErrors,
+    value: string
+  ) => {
+    const setters: Record<
+      keyof DeliveryAddressErrors,
+      (value: string) => void
+    > = {
+      name: setName,
+      phone: setPhone,
+      address: setAddress,
+      city: setCity,
+      pincode: setPincode,
+    };
+
+    setters[field](value);
+    setErrors((current) => ({
+      ...current,
+      [field]: "",
+    }));
+    setSubmitError("");
+  };
+
   const handlePlaceOrder = async () => {
-    if (!name || !phone || !address || !city || !pincode) {
-      alert("Please fill all address fields");
+    const normalizedAddress = normalizeDeliveryAddress({
+      name,
+      phone,
+      address,
+      city,
+      pincode,
+    });
+
+    const addressErrors = validateDeliveryAddress(
+      normalizedAddress
+    );
+
+    if (Object.keys(addressErrors).length > 0) {
+      setErrors(addressErrors);
+      setSubmitError(
+        "Please correct the highlighted delivery address fields."
+      );
       return;
     }
 
+    setErrors({});
+    setSubmitError("");
+
     try {
       if (paymentMode === "cod") {
-        await axios.post("/api/order/create-cod", {
-          productId,
-          quantity: item.quantity,
-          address: { name, phone, address, city, pincode },
-          amount: finalTotal,
-          deliveryCharge,
-          serviceCharge,
-        });
-        router.replace("/orders");
+        const response = await axios.post(
+          "/api/order/create-cod",
+          {
+            productId,
+            quantity: item.quantity,
+            address: normalizedAddress,
+          }
+        );
+
+        router.replace(
+          `/order-success?orderId=${response.data.order._id}`
+        );
         return;
       }
 
       if (!razorpayLoaded || !(window as any).Razorpay) {
-        alert("Razorpay Checkout is still loading. Please try again.");
+        setSubmitError(
+          "Razorpay Checkout is still loading. Please try again in a moment."
+        );
         return;
       }
 
-      const res = await axios.post(
+      const response = await axios.post(
         "/api/order/online-pay",
         {
           productId,
           quantity: item.quantity,
-          address: { name, phone, address, city, pincode },
+          address: normalizedAddress,
         }
       );
 
       const options = {
-        key: res.data.keyId,
-        amount: res.data.amount,
-        currency: res.data.currency,
+        key: response.data.keyId,
+        amount: response.data.amount,
+        currency: response.data.currency,
         name: "MultiCart",
         description: item.product.title,
-        order_id: res.data.razorpayOrderId,
+        order_id: response.data.razorpayOrderId,
         prefill: {
           name,
           contact: phone,
@@ -126,24 +194,32 @@ export default function CheckoutPage() {
         theme: {
           color: "#2563eb",
         },
-        handler: async (response: {
+        handler: async (paymentResponse: {
           razorpay_order_id: string;
           razorpay_payment_id: string;
           razorpay_signature: string;
         }) => {
           try {
-            await axios.post("/api/order/razorpay/verify", {
-              orderId: res.data.orderId,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
+            await axios.post(
+              "/api/order/razorpay/verify",
+              {
+                orderId: response.data.orderId,
+                razorpay_order_id:
+                  paymentResponse.razorpay_order_id,
+                razorpay_payment_id:
+                  paymentResponse.razorpay_payment_id,
+                razorpay_signature:
+                  paymentResponse.razorpay_signature,
+              }
+            );
 
-            router.replace("/order-success");
+            router.replace(
+              `/order-success?orderId=${response.data.orderId}`
+            );
           } catch (error: any) {
-            alert(
+            setSubmitError(
               error?.response?.data?.message ||
-              "Payment verification failed"
+                "Payment verification failed. Your order was not marked as paid."
             );
           }
         },
@@ -151,16 +227,27 @@ export default function CheckoutPage() {
 
       const razorpay = new (window as any).Razorpay(options);
 
-      razorpay.on("payment.failed", (response: any) => {
-        alert(
-          response?.error?.description ||
-          "Payment failed. Please try again."
-        );
-      });
+      razorpay.on(
+        "payment.failed",
+        (paymentFailure: any) => {
+          setSubmitError(
+            paymentFailure?.error?.description ||
+              "Payment failed. Please try again."
+          );
+        }
+      );
 
       razorpay.open();
-    } catch (err: any) {
-      alert(err?.response?.data?.message || "Checkout failed");
+    } catch (error: any) {
+      const serverFieldErrors =
+        error?.response?.data?.fieldErrors || {};
+
+      setErrors(serverFieldErrors);
+
+      setSubmitError(
+        error?.response?.data?.message ||
+          "Checkout failed. Please review your details and try again."
+      );
     }
   };
 
@@ -178,80 +265,156 @@ export default function CheckoutPage() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-5xl bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-6 md:p-10 grid md:grid-cols-2 gap-8"
         >
-          {/* LEFT — ADDRESS */}
           <div className="space-y-5">
             <h2 className="text-2xl font-bold text-white">
               Delivery Address
             </h2>
 
-            <input className="w-full p-3 rounded-xl bg-black/60 border border-white/20
-               text-white placeholder-gray-400
-               focus:outline-none focus:ring-2 focus:ring-blue-500
-               hover:border-white/40 transition" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} />
-            <input className="w-full p-3 rounded-xl bg-black/60 border border-white/20
-               text-white placeholder-gray-400
-               focus:outline-none focus:ring-2 focus:ring-blue-500
-               hover:border-white/40 transition" placeholder="Phone Number" value={phone} onChange={e => setPhone(e.target.value)} />
-            <textarea className="w-full p-3 rounded-xl bg-black/60 border border-white/20
-               text-white placeholder-gray-400
-               focus:outline-none focus:ring-2 focus:ring-blue-500
-               hover:border-white/40 transition" rows={3} placeholder="Complete Address" value={address} onChange={e => setAddress(e.target.value)} />
+            {submitError && (
+              <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {submitError}
+              </div>
+            )}
+
+            <div>
+              <input
+                className={fieldClass("name")}
+                placeholder="Full Name"
+                value={name}
+                onChange={(e) =>
+                  updateField("name", e.target.value)
+                }
+              />
+              {errors.name && (
+                <p className="mt-1 text-xs text-red-400">
+                  {errors.name}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <input
+                inputMode="numeric"
+                maxLength={10}
+                className={fieldClass("phone")}
+                placeholder="10-digit Phone Number"
+                value={phone}
+                onChange={(e) =>
+                  updateField(
+                    "phone",
+                    e.target.value.replace(/\D/g, "")
+                  )
+                }
+              />
+              {errors.phone && (
+                <p className="mt-1 text-xs text-red-400">
+                  {errors.phone}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <textarea
+                className={fieldClass("address")}
+                rows={3}
+                placeholder="Complete Address"
+                value={address}
+                onChange={(e) =>
+                  updateField("address", e.target.value)
+                }
+              />
+              {errors.address && (
+                <p className="mt-1 text-xs text-red-400">
+                  {errors.address}
+                </p>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <input className="w-full p-3 rounded-xl bg-black/60 border border-white/20
-               text-white placeholder-gray-400
-               focus:outline-none focus:ring-2 focus:ring-blue-500
-               hover:border-white/40 transition" placeholder="City" value={city} onChange={e => setCity(e.target.value)} />
-              <input className="w-full p-3 rounded-xl bg-black/60 border border-white/20
-               text-white placeholder-gray-400
-               focus:outline-none focus:ring-2 focus:ring-blue-500
-               hover:border-white/40 transition" placeholder="Pincode" value={pincode} onChange={e => setPincode(e.target.value)} />
+              <div>
+                <input
+                  className={fieldClass("city")}
+                  placeholder="City"
+                  value={city}
+                  onChange={(e) =>
+                    updateField("city", e.target.value)
+                  }
+                />
+                {errors.city && (
+                  <p className="mt-1 text-xs text-red-400">
+                    {errors.city}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <input
+                  inputMode="numeric"
+                  maxLength={6}
+                  className={fieldClass("pincode")}
+                  placeholder="6-digit Pincode"
+                  value={pincode}
+                  onChange={(e) =>
+                    updateField(
+                      "pincode",
+                      e.target.value.replace(/\D/g, "")
+                    )
+                  }
+                />
+                {errors.pincode && (
+                  <p className="mt-1 text-xs text-red-400">
+                    {errors.pincode}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* RIGHT — SUMMARY */}
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-white">
               Order Summary
             </h2>
 
-            {/* Product Card */}
             <div className="flex items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
               <img
                 src={item.product.image1}
                 alt={item.product.title}
                 className="w-20 h-20 object-contain rounded-lg bg-white"
               />
+
               <div className="flex-1">
-                <p className="font-semibold text-gray-100">{item.product.title}</p>
+                <p className="font-semibold text-gray-100">
+                  {item.product.title}
+                </p>
                 <p className="text-sm text-gray-400">
                   Qty: {item.quantity}
                 </p>
               </div>
+
               <p className="font-bold text-green-400">
-                ₹ {productsTotal}
+                ₹ {charges.productsTotal}
               </p>
             </div>
 
-            {/* Price Breakdown */}
             <div className="space-y-2 text-sm text-gray-300">
               <div className="flex justify-between">
                 <span>Delivery</span>
-                <span>₹ {deliveryCharge}</span>
+                <span>₹ {charges.deliveryCharge}</span>
               </div>
+
               <div className="flex justify-between">
                 <span>Service Charge</span>
-                <span>₹ {serviceCharge}</span>
+                <span>₹ {charges.serviceCharge}</span>
               </div>
+
               <div className="flex justify-between text-lg font-bold border-t border-white/20 pt-3 text-white">
                 <span>Total</span>
                 <span className="text-green-400">
-                  ₹ {finalTotal}
+                  ₹ {charges.totalAmount}
                 </span>
               </div>
             </div>
 
-            {/* Payment */}
             <div className="space-y-3">
               <p className="font-semibold text-white">
                 Payment Method
@@ -265,7 +428,11 @@ export default function CheckoutPage() {
                     paymentMode === "cod"
                       ? "bg-blue-600"
                       : "bg-white/10"
-                  } ${codDisabled ? "opacity-40 cursor-not-allowed" : ""}`}
+                  } ${
+                    codDisabled
+                      ? "opacity-40 cursor-not-allowed"
+                      : ""
+                  }`}
                 >
                   Cash on Delivery
                 </button>
@@ -283,7 +450,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* CTA */}
             <button
               onClick={handlePlaceOrder}
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 py-4 rounded-2xl font-bold text-lg transition"
