@@ -42,7 +42,29 @@ export async function POST(req: NextRequest) {
     }
 
     // ✅ UPDATE LOGIC
+    if (!["approved", "rejected"].includes(status)) {
+      return NextResponse.json(
+        { message: "Status must be approved or rejected." },
+        { status: 400 }
+      );
+    }
+
     if (status === "approved") {
+      const demoPayoutMode = process.env.PAYOUT_DEMO_MODE !== "false";
+
+      if (
+        !demoPayoutMode &&
+        vendor.payoutVerification?.status !== "verified"
+      ) {
+        return NextResponse.json(
+          {
+            message:
+              "Vendor payout details must be verified before approval.",
+          },
+          { status: 409 }
+        );
+      }
+
       vendor.verificationStatus = "approved";
       vendor.isApproved = true;
       vendor.approvedAt = new Date();
