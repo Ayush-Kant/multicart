@@ -11,6 +11,7 @@ import {
   DeliveryAddressErrors,
 } from "@/lib/order-validation";
 import { calculateOrderCharges } from "@/lib/marketplace-finance";
+import HomeButton from "@/component/HomeButton";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -259,11 +260,14 @@ export default function CheckoutPage() {
         onLoad={() => setRazorpayLoaded(true)}
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-[#020617] via-black to-[#020617] flex items-center justify-center px-4 py-12">
+      <div className="min-h-screen bg-gradient-to-br from-[#020617] via-black to-[#020617] px-4 py-8">
+        <div className="max-w-5xl mx-auto flex justify-end mb-4">
+          <HomeButton />
+        </div>
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-5xl bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-6 md:p-10 grid md:grid-cols-2 gap-8"
+          className="w-full max-w-5xl mx-auto bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-6 md:p-10 grid md:grid-cols-2 gap-8"
         >
           <div className="space-y-5">
             <h2 className="text-2xl font-bold text-white">
