@@ -6,113 +6,129 @@ import Product from "@/models/product.model";
 import User from "@/models/user.model";
 
 export async function POST(req: NextRequest) {
+  let createdOrderId: string | null = null;
+  let stockUpdated = false;
+
   try {
     await connectDb();
 
-    // ✅ AUTH CHECK
     const session = await auth();
+
     if (!session?.user?.id) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { message: "You must be logged in to place an order." },
+        { status: 401 }
+      );
     }
 
     const userId = session.user.id;
+    const body = await req.json();
 
-    // ✅ BODY DATA
-    const {
-      productId,
-      quantity,
-      address,
-      amount,
-      deliveryCharge,
-      serviceCharge,
-    } = await req.json();
+    const { productId, quantity, address } = body;
 
-    // ✅ BASIC VALIDATION
-    if (!productId || !quantity) {
+    if (!productId) {
       return NextResponse.json(
-        { message: "ProductId and quantity required" },
+        { message: "Product ID is required." },
         { status: 400 }
       );
     }
 
-    // ✅ ADDRESS VALIDATION (UNCHANGED)
-    if (
-      !address?.name ||
-      !address?.phone ||
-      !address?.address ||
-      !address?.city ||
-      !address?.pincode
-    ) {
+    if (!Number.isInteger(quantity) || quantity <= 0) {
       return NextResponse.json(
-        { message: "All address fields are required" },
+        { message: "Quantity must be a positive whole number." },
         { status: 400 }
       );
     }
 
-    // ✅ AMOUNT VALIDATION (UNCHANGED)
-    if (
-      typeof amount !== "number" ||
-      typeof deliveryCharge !== "number" ||
-      typeof serviceCharge !== "number"
-    ) {
-      return NextResponse.json(
-        { message: "Invalid amount, delivery or service charge" },
-        { status: 400 }
-      );
+    const requiredAddressFields = [
+      ["name", "Full name"],
+      ["phone", "Phone number"],
+      ["address", "Delivery address"],
+      ["city", "City"],
+      ["pincode", "Pincode"],
+    ] as const;
+
+    for (const [key, label] of requiredAddressFields) {
+      if (!String(address?.[key] ?? "").trim()) {
+        return NextResponse.json(
+          { message: `${label} is required.` },
+          { status: 400 }
+        );
+      }
     }
 
-    // ✅ LOAD USER
     const user = await User.findById(userId);
+
     if (!user || !user.cart) {
       return NextResponse.json(
-        { message: "User or cart not found" },
+        { message: "Your account or cart could not be found." },
         { status: 404 }
       );
     }
 
-    // ✅ CHECK PRODUCT EXISTS IN CART
     const cartItem = user.cart.find(
       (item: any) => item.product.toString() === productId
     );
 
     if (!cartItem) {
       return NextResponse.json(
-        { message: "Product not found in cart" },
+        { message: "This product is no longer in your cart." },
         { status: 400 }
       );
     }
 
-    // ✅ LOAD PRODUCT
+    if (cartItem.quantity !== quantity) {
+      return NextResponse.json(
+        {
+          message:
+            "The checkout quantity does not match your current cart quantity. Please refresh the cart and try again.",
+        },
+        { status: 409 }
+      );
+    }
+
     const product: any = await Product.findById(productId);
+
     if (!product) {
       return NextResponse.json(
-        { message: "Product not found" },
+        { message: "The selected product could not be found." },
         { status: 404 }
       );
     }
 
-    // ✅ STOCK CHECK
-    if (product.stock < quantity) {
+    if (product.verificationStatus !== "approved") {
       return NextResponse.json(
-        { message: `Insufficient stock for ${product.title}` },
+        { message: "This product is not currently available for purchase." },
         { status: 400 }
       );
     }
 
-    // ✅ COD CHECK
+    if (product.stock < quantity) {
+      return NextResponse.json(
+        {
+          message: `Only ${product.stock} unit(s) of ${product.title} are available.`,
+        },
+        { status: 400 }
+      );
+    }
+
     if (product.payOnDelivery === false) {
       return NextResponse.json(
-        { message: `${product.title} does not support Cash on Delivery` },
+        {
+          message: `${product.title} does not support Cash on Delivery. Please choose online payment.`,
+        },
         { status: 400 }
       );
     }
 
     const productsTotal = product.price * quantity;
+    const deliveryCharge = product.freeDelivery ? 0 : 50;
+    const serviceCharge = 30;
+    const totalAmount =
+      productsTotal + deliveryCharge + serviceCharge;
 
-    // ✅ CREATE ORDER (SINGLE PRODUCT)
     const order = await Order.create({
       buyer: userId,
-
       products: [
         {
           product: product._id,
@@ -120,33 +136,38 @@ export async function POST(req: NextRequest) {
           price: product.price,
         },
       ],
-
       productVendor: product.vendor,
-
       productsTotal,
       deliveryCharge,
       serviceCharge,
-      totalAmount: amount,
-
+      totalAmount,
       paymentMethod: "cod",
       isPaid: false,
       orderStatus: "pending",
       returnedAmount: 0,
-
-      address,
+      platformFee: 0,
+      vendorAmount: 0,
+      payoutStatus: "pending",
+      address: {
+        name: String(address.name).trim(),
+        phone: String(address.phone).trim(),
+        address: String(address.address).trim(),
+        city: String(address.city).trim(),
+        pincode: String(address.pincode).trim(),
+      },
     });
 
-    // ✅ UPDATE PRODUCT STOCK
+    createdOrderId = order._id.toString();
+
     await Product.findByIdAndUpdate(productId, {
       $inc: { stock: -quantity },
     });
+    stockUpdated = true;
 
-    // ✅ REMOVE ONLY THIS PRODUCT FROM CART (IMPORTANT)
     user.cart = user.cart.filter(
       (item: any) => item.product.toString() !== productId
     );
 
-    // ✅ PUSH ORDER ID
     user.orders = user.orders || [];
     user.orders.push(order._id);
 
@@ -154,15 +175,38 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-        message: "✅ COD Order placed successfully",
+        message: "COD order placed successfully.",
         order,
       },
       { status: 201 }
     );
   } catch (error: any) {
+    if (stockUpdated && createdOrderId) {
+      try {
+        const failedOrder = await Order.findById(createdOrderId);
+        if (failedOrder) {
+          const productId = failedOrder.products[0]?.product;
+          const quantity = failedOrder.products[0]?.quantity || 0;
+
+          if (productId && quantity > 0) {
+            await Product.findByIdAndUpdate(productId, {
+              $inc: { stock: quantity },
+            });
+          }
+        }
+      } catch {}
+    }
+
+    if (createdOrderId) {
+      try {
+        await Order.findByIdAndDelete(createdOrderId);
+      } catch {}
+    }
+
     console.error("❌ COD ORDER ERROR:", error);
+
     return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
+      { message: error.message || "Unable to place COD order." },
       { status: 500 }
     );
   }
