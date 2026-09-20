@@ -26,6 +26,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import getCurrentUser from "@/hooks/getCurrentUser";
+import HeaderLocation from "@/component/HeaderLocation";
 
 interface IUser {
   _id?: mongoose.Types.ObjectId;
@@ -95,7 +96,7 @@ export default function Navbar({ user }: { user?: IUser }) {
 
   return (
     <nav className="sticky top-0 w-full bg-black text-white z-50 shadow-lg">
-      <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
         {/* Logo */}
         <div
           className="flex items-center gap-2 cursor-pointer"
@@ -134,21 +135,25 @@ export default function Navbar({ user }: { user?: IUser }) {
           </div>
         ) : (
           <>
-            {/* Desktop Links */}
+            {/* Desktop location + links */}
             {currentUser.role === "user" && (
-              <div className="hidden md:flex gap-8">
-                <NavItem label="Home" path="/" router={router} />
-                <NavItem
-                  label="Categories"
-                  path="/category"
-                  router={router}
-                />
-                <NavItem label="Shop" path="/shop" router={router} />
-                <NavItem
-                  label="Orders"
-                  path="/orders"
-                  router={router}
-                />
+              <div className="hidden md:flex items-center gap-4 flex-1 min-w-0">
+                <HeaderLocation userId={String(currentUser._id || "")} />
+
+                <div className="flex gap-8 mx-auto">
+                  <NavItem label="Home" path="/" router={router} />
+                  <NavItem
+                    label="Categories"
+                    path="/category"
+                    router={router}
+                  />
+                  <NavItem label="Shop" path="/shop" router={router} />
+                  <NavItem
+                    label="Orders"
+                    path="/orders"
+                    router={router}
+                  />
+                </div>
               </div>
             )}
 
@@ -199,8 +204,14 @@ export default function Navbar({ user }: { user?: IUser }) {
               )}
             </div>
 
-            {/* Mobile Icons */}
-            <div className="md:hidden flex items-center gap-4">
+            {/* Mobile location + icons */}
+            <div className="md:hidden flex items-center gap-2 ml-auto">
+              {currentUser.role === "user" && (
+                <HeaderLocation
+                  userId={String(currentUser._id || "")}
+                  mobile
+                />
+              )}
               {currentUser.role === "admin" ||
               currentUser.role === "vendor" ? (
                 <>
