@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/db";
 import Order from "@/models/order.model";
+import { settlePaidOrder } from "@/lib/vendor-payout";
 
 const safeEqual = (expected: string, actual: string) => {
   const expectedBuffer = Buffer.from(expected, "utf8");
@@ -40,7 +41,10 @@ export async function POST(req: NextRequest) {
   try {
     const event = JSON.parse(rawBody);
 
-    if (event.event === "order.paid" || event.event === "payment.captured") {
+    if (
+      event.event === "order.paid" ||
+      event.event === "payment.captured"
+    ) {
       const payment = event.payload?.payment?.entity;
 
       const razorpayOrderId = payment?.order_id;
@@ -91,17 +95,22 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      if (!order.isPaid) {
-        order.isPaid = true;
-        order.paymentDetails = {
-          razorpayOrderId,
-          razorpayPaymentId,
-        };
-        await order.save();
-      }
+      order.isPaid = true;
+      order.paymentDetails = {
+        razorpayOrderId,
+        razorpayPaymentId,
+      };
+
+      await order.save();
+
+      const payout = await settlePaidOrder(order._id.toString());
 
       return NextResponse.json(
-        { received: true },
+        {
+          received: true,
+          payoutId: payout?._id || null,
+          payoutStatus: payout?.status || order.payoutStatus,
+        },
         { status: 200 }
       );
     }
