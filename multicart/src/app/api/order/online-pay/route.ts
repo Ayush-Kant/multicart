@@ -9,6 +9,7 @@ import {
   getRazorpayKeyId,
 } from "@/lib/razorpay";
 import { calculateOrderCharges } from "@/lib/marketplace-finance";
+import { normalizeDeliveryAddress, validateDeliveryAddress } from "@/lib/order-validation";
 
 export async function POST(req: NextRequest) {
   let createdOrderId: string | null = null;
@@ -47,21 +48,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const requiredAddressFields = [
-      ["name", "Full name"],
-      ["phone", "Phone number"],
-      ["address", "Delivery address"],
-      ["city", "City"],
-      ["pincode", "Pincode"],
-    ] as const;
+    const normalizedAddress = normalizeDeliveryAddress(address || {});
+    const addressErrors = validateDeliveryAddress(normalizedAddress);
 
-    for (const [key, label] of requiredAddressFields) {
-      if (!String(address?.[key] ?? "").trim()) {
-        return NextResponse.json(
-          { message: `${label} is required.` },
-          { status: 400 }
-        );
-      }
+    if (Object.keys(addressErrors).length > 0) {
+      return NextResponse.json(
+        {
+          message: "Please correct the delivery address.",
+          fieldErrors: addressErrors,
+        },
+        { status: 400 }
+      );
     }
 
     const user = await User.findById(userId);
@@ -163,13 +160,7 @@ export async function POST(req: NextRequest) {
       isPaid: false,
       orderStatus: "pending",
       returnedAmount: 0,
-      address: {
-        name: String(address.name).trim(),
-        phone: String(address.phone).trim(),
-        address: String(address.address).trim(),
-        city: String(address.city).trim(),
-        pincode: String(address.pincode).trim(),
-      },
+      address: normalizedAddress,
     });
 
     createdOrderId = order._id.toString();
