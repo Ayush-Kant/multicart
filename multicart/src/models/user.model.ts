@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { IProduct } from "./product.model";
 
- export interface IUser {
+export interface IUser {
   _id?: mongoose.Types.ObjectId;
 
   name: string;
@@ -17,6 +17,22 @@ import { IProduct } from "./product.model";
   businessAddress?: string;
   gstNumber?: string;
 
+  payoutDetails?: {
+    accountHolderName: string;
+    bankName: string;
+    accountNumber: string;
+    ifscCode: string;
+    panNumber: string;
+    accountType: "savings" | "current";
+  };
+
+  payoutVerification?: {
+    status: "pending" | "verified" | "rejected";
+    mode: "demo" | "live";
+    verifiedAt?: Date;
+    rejectedReason?: string;
+  };
+
   isApproved?: boolean;
 
   verificationStatus?: "pending" | "approved" | "rejected";
@@ -25,8 +41,8 @@ import { IProduct } from "./product.model";
   rejectedReason?: string;
 
   /* -------------------- PRODUCT & ORDER REFERENCES -------------------- */
-  vendorProducts?: IProduct[]; // ✅ Products created by vendor
-  orders?: mongoose.Types.ObjectId[];         // ✅ Orders placed by user
+  vendorProducts?: IProduct[];
+  orders?: mongoose.Types.ObjectId[];
 
   /* -------------------- CART DATA -------------------- */
   cart?: {
@@ -34,16 +50,14 @@ import { IProduct } from "./product.model";
     quantity: number;
   }[];
 
-   chats?: {
-    with: mongoose.Types.ObjectId; // kis user ke saath chat
+  chats?: {
+    with: mongoose.Types.ObjectId;
     messages: {
-      sender: mongoose.Types.ObjectId; // kisne message bheja
+      sender: mongoose.Types.ObjectId;
       text: string;
       createdAt: Date;
     }[];
   }[];
-
-
 
   createdAt?: Date;
   updatedAt?: Date;
@@ -71,6 +85,33 @@ const userSchema = new mongoose.Schema<IUser>(
     shopName: { type: String },
     businessAddress: { type: String },
     gstNumber: { type: String },
+
+    payoutDetails: {
+      accountHolderName: { type: String },
+      bankName: { type: String },
+      accountNumber: { type: String },
+      ifscCode: { type: String },
+      panNumber: { type: String },
+      accountType: {
+        type: String,
+        enum: ["savings", "current"],
+      },
+    },
+
+    payoutVerification: {
+      status: {
+        type: String,
+        enum: ["pending", "verified", "rejected"],
+        default: "pending",
+      },
+      mode: {
+        type: String,
+        enum: ["demo", "live"],
+        default: "demo",
+      },
+      verifiedAt: { type: Date },
+      rejectedReason: { type: String },
+    },
 
     isApproved: { type: Boolean, default: false },
 
@@ -111,7 +152,7 @@ const userSchema = new mongoose.Schema<IUser>(
       },
     ],
 
-      chats: [
+    chats: [
       {
         with: {
           type: mongoose.Schema.Types.ObjectId,
