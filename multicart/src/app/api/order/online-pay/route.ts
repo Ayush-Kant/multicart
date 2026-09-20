@@ -8,6 +8,7 @@ import {
   createRazorpayOrder,
   getRazorpayKeyId,
 } from "@/lib/razorpay";
+import { calculateOrderCharges } from "@/lib/marketplace-finance";
 
 export async function POST(req: NextRequest) {
   let createdOrderId: string | null = null;
@@ -21,41 +22,53 @@ export async function POST(req: NextRequest) {
     await connectDb();
 
     const session = await auth();
+
     if (!session?.user?.id) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { message: "You must be logged in to place an online order." },
+        { status: 401 }
+      );
     }
 
     const userId = session.user.id;
     const { productId, quantity, address } = await req.json();
 
-    if (
-      !productId ||
-      !Number.isInteger(quantity) ||
-      quantity <= 0
-    ) {
+    if (!productId) {
       return NextResponse.json(
-        { message: "Valid productId and quantity are required" },
+        { message: "Product ID is required." },
         { status: 400 }
       );
     }
 
-    if (
-      !address?.name ||
-      !address?.phone ||
-      !address?.address ||
-      !address?.city ||
-      !address?.pincode
-    ) {
+    if (!Number.isInteger(quantity) || quantity <= 0) {
       return NextResponse.json(
-        { message: "All address fields are required" },
+        { message: "Quantity must be a positive whole number." },
         { status: 400 }
       );
+    }
+
+    const requiredAddressFields = [
+      ["name", "Full name"],
+      ["phone", "Phone number"],
+      ["address", "Delivery address"],
+      ["city", "City"],
+      ["pincode", "Pincode"],
+    ] as const;
+
+    for (const [key, label] of requiredAddressFields) {
+      if (!String(address?.[key] ?? "").trim()) {
+        return NextResponse.json(
+          { message: `${label} is required.` },
+          { status: 400 }
+        );
+      }
     }
 
     const user = await User.findById(userId);
+
     if (!user || !user.cart) {
       return NextResponse.json(
-        { message: "User or cart not found" },
+        { message: "Your account or cart could not be found." },
         { status: 404 }
       );
     }
@@ -66,49 +79,65 @@ export async function POST(req: NextRequest) {
 
     if (!cartItem) {
       return NextResponse.json(
-        { message: "Product not found in cart" },
+        { message: "This product is no longer in your cart." },
         { status: 400 }
       );
     }
 
     if (cartItem.quantity !== quantity) {
       return NextResponse.json(
-        { message: "Checkout quantity no longer matches your cart" },
+        {
+          message:
+            "The checkout quantity does not match your current cart quantity. Please refresh the cart and try again.",
+        },
         { status: 409 }
       );
     }
 
     const product: any = await Product.findById(productId);
+
     if (!product) {
       return NextResponse.json(
-        { message: "Product not found" },
+        { message: "The selected product could not be found." },
         { status: 404 }
+      );
+    }
+
+    if (!product.vendor) {
+      return NextResponse.json(
+        { message: "This product is missing a vendor assignment." },
+        { status: 409 }
       );
     }
 
     if (product.verificationStatus !== "approved") {
       return NextResponse.json(
-        { message: "This product is not currently available for purchase" },
+        { message: "This product is not currently available for purchase." },
         { status: 400 }
       );
     }
 
     if (product.stock < quantity) {
       return NextResponse.json(
-        { message: `Insufficient stock for ${product.title}` },
+        {
+          message:
+            `Only ${product.stock} unit(s) of ${product.title} are available.`,
+        },
         { status: 400 }
       );
     }
 
-    const productsTotal = product.price * quantity;
-    const deliveryCharge = product.freeDelivery ? 0 : 50;
-    const serviceCharge = 30;
-    const totalAmount = productsTotal + deliveryCharge + serviceCharge;
-    const amountInPaise = Math.round(totalAmount * 100);
+    const charges = calculateOrderCharges({
+      productPrice: product.price,
+      quantity,
+      freeDelivery: Boolean(product.freeDelivery),
+    });
+
+    const amountInPaise = Math.round(charges.totalAmount * 100);
 
     if (!Number.isFinite(amountInPaise) || amountInPaise <= 0) {
       return NextResponse.json(
-        { message: "Invalid order amount" },
+        { message: "The calculated order amount is invalid." },
         { status: 400 }
       );
     }
@@ -123,15 +152,24 @@ export async function POST(req: NextRequest) {
         },
       ],
       productVendor: product.vendor,
-      productsTotal,
-      deliveryCharge,
-      serviceCharge,
-      totalAmount,
+      productsTotal: charges.productsTotal,
+      deliveryCharge: charges.deliveryCharge,
+      serviceCharge: charges.serviceCharge,
+      totalAmount: charges.totalAmount,
+      platformFee: 0,
+      vendorAmount: 0,
+      payoutStatus: "pending",
       paymentMethod: "razorpay",
       isPaid: false,
       orderStatus: "pending",
       returnedAmount: 0,
-      address,
+      address: {
+        name: String(address.name).trim(),
+        phone: String(address.phone).trim(),
+        address: String(address.address).trim(),
+        city: String(address.city).trim(),
+        pincode: String(address.pincode).trim(),
+      },
     });
 
     createdOrderId = order._id.toString();
@@ -149,6 +187,7 @@ export async function POST(req: NextRequest) {
     );
     user.orders = user.orders || [];
     user.orders.push(order._id);
+
     await user.save();
     userUpdated = true;
 
@@ -191,7 +230,12 @@ export async function POST(req: NextRequest) {
       try {
         await User.findByIdAndUpdate(rollbackBuyerId, {
           $pull: { orders: createdOrderId },
-          $push: { cart: { product: rollbackProductId, quantity: rollbackQuantity } },
+          $push: {
+            cart: {
+              product: rollbackProductId,
+              quantity: rollbackQuantity,
+            },
+          },
         });
       } catch {}
     }
@@ -205,7 +249,7 @@ export async function POST(req: NextRequest) {
     console.error("❌ RAZORPAY ORDER ERROR:", error);
 
     return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
+      { message: error.message || "Unable to start online payment." },
       { status: 500 }
     );
   }
