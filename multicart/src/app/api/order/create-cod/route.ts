@@ -5,7 +5,15 @@ import Order from "@/models/order.model";
 import Product from "@/models/product.model";
 import User from "@/models/user.model";
 import { calculateMarketplaceSplit, calculateOrderCharges } from "@/lib/marketplace-finance";
-import { normalizeDeliveryAddress, validateDeliveryAddress } from "@/lib/order-validation";
+import {
+  normalizeDeliveryAddress,
+  validateDeliveryAddress,
+} from "@/lib/order-validation";
+import {
+  normalizeAddressInput,
+  validateAddressInput,
+  toOrderAddress,
+} from "@/lib/address-validation";
 
 export async function POST(req: NextRequest) {
   let createdOrderId: string | null = null;
@@ -26,7 +34,7 @@ export async function POST(req: NextRequest) {
     const userId = session.user.id;
     const body = await req.json();
 
-    const { productId, quantity, address } = body;
+    const { productId, quantity, address, addressId } = body;
 
     if (!productId) {
       return NextResponse.json(
@@ -42,18 +50,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const normalizedAddress = normalizeDeliveryAddress(address || {});
-    const addressErrors = validateDeliveryAddress(normalizedAddress);
-
-    if (Object.keys(addressErrors).length > 0) {
-      return NextResponse.json(
-        {
-          message: "Please correct the delivery address.",
-          fieldErrors: addressErrors,
-        },
-        { status: 400 }
-      );
-    }
+    let orderAddress: any;
 
     const user = await User.findById(userId);
 
@@ -62,6 +59,70 @@ export async function POST(req: NextRequest) {
         { message: "Your account or cart could not be found." },
         { status: 404 }
       );
+    }
+
+    if (addressId) {
+      const savedAddress = user.addresses?.find(
+        (saved: any) =>
+          String(saved._id) === String(addressId)
+      );
+
+      if (!savedAddress) {
+        return NextResponse.json(
+          { message: "Selected saved address was not found." },
+          { status: 404 }
+        );
+      }
+
+      const normalizedSavedAddress = normalizeAddressInput({
+        label: savedAddress.label,
+        recipientName: savedAddress.recipientName,
+        phone: savedAddress.phone,
+        buildingNumber: savedAddress.buildingNumber,
+        street: savedAddress.street,
+        area: savedAddress.area,
+        landmark: savedAddress.landmark,
+        city: savedAddress.city,
+        state: savedAddress.state,
+        pincode: savedAddress.pincode,
+        country: savedAddress.country,
+        latitude: savedAddress.latitude,
+        longitude: savedAddress.longitude,
+        accuracy: savedAddress.accuracy,
+        source: savedAddress.source,
+      });
+
+      const savedAddressErrors =
+        validateAddressInput(normalizedSavedAddress);
+
+      if (Object.keys(savedAddressErrors).length > 0) {
+        return NextResponse.json(
+          {
+            message:
+              "The selected saved address is incomplete. Edit it before placing the order.",
+            fieldErrors: savedAddressErrors,
+          },
+          { status: 400 }
+        );
+      }
+
+      orderAddress = toOrderAddress(normalizedSavedAddress);
+    } else {
+      const normalizedAddress = normalizeDeliveryAddress(address || {});
+      const addressErrors =
+        validateDeliveryAddress(normalizedAddress);
+
+      if (Object.keys(addressErrors).length > 0) {
+        return NextResponse.json(
+          {
+            message: "Please correct the delivery address.",
+            fieldErrors: addressErrors,
+          },
+          { status: 400 }
+        );
+      }
+
+      orderAddress = normalizedAddress;
     }
 
     const cartItem = user.cart.find(
@@ -148,7 +209,7 @@ export async function POST(req: NextRequest) {
       platformFeePercent: split.platformFeePercent,
       vendorAmount: split.vendorAmount,
       payoutStatus: "pending",
-      address: normalizedAddress,
+      address: orderAddress,
     });
 
     createdOrderId = order._id.toString();
