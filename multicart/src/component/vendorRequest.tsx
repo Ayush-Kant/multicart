@@ -15,6 +15,18 @@ type Vendor = {
   businessAddress?: string;
   gstNumber?: string;
   verificationStatus?: "pending" | "approved" | "rejected";
+  payoutVerification?: {
+    status?: "pending" | "verified" | "rejected";
+    mode?: "demo" | "live";
+  };
+  payoutDetails?: {
+    accountHolderName?: string;
+    bankName?: string;
+    accountLast4?: string;
+    ifscCode?: string;
+    panMasked?: string;
+    accountType?: "savings" | "current";
+  };
 };
 
 export default function VendorRequest() {
@@ -218,6 +230,38 @@ export default function VendorRequest() {
                 <p><b>Shop:</b> {selectedVendor.shopName}</p>
                 <p><b>Address:</b> {selectedVendor.businessAddress}</p>
                 <p><b>GST:</b> {selectedVendor.gstNumber}</p>
+
+                <div className="pt-3 mt-3 border-t border-white/10">
+                  <p className="font-semibold text-blue-300 mb-2">
+                    Payout Profile
+                  </p>
+                  <p><b>Verification:</b>{" "}
+                    <span className="capitalize">
+                      {selectedVendor.payoutVerification?.status || "pending"}
+                    </span>{" "}
+                    ({selectedVendor.payoutVerification?.mode || "demo"})
+                  </p>
+                  <p><b>Account Holder:</b>{" "}
+                    {selectedVendor.payoutDetails?.accountHolderName || "-"}
+                  </p>
+                  <p><b>Bank:</b>{" "}
+                    {selectedVendor.payoutDetails?.bankName || "-"}
+                  </p>
+                  <p><b>Account:</b>{" "}
+                    {selectedVendor.payoutDetails?.accountLast4
+                      ? `•••• ${selectedVendor.payoutDetails.accountLast4}`
+                      : "-"}
+                  </p>
+                  <p><b>IFSC:</b>{" "}
+                    {selectedVendor.payoutDetails?.ifscCode || "-"}
+                  </p>
+                  <p><b>PAN:</b>{" "}
+                    {selectedVendor.payoutDetails?.panMasked || "-"}
+                  </p>
+                  <p><b>Type:</b>{" "}
+                    {selectedVendor.payoutDetails?.accountType || "-"}
+                  </p>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
