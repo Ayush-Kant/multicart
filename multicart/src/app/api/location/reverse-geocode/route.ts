@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 
 const NOMINATIM_BASE_URL =
   process.env.GEOCODING_REVERSE_URL ||
@@ -6,6 +7,15 @@ const NOMINATIM_BASE_URL =
 
 export async function GET(req: NextRequest) {
   try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const lat = Number(searchParams.get("lat"));
     const lon = Number(searchParams.get("lon"));
@@ -37,8 +47,8 @@ export async function GET(req: NextRequest) {
           process.env.GEOCODING_USER_AGENT ||
           "MultiCart/1.0 (delivery address lookup)",
         Accept: "application/json",
+        "Accept-Language": "en",
       },
-      cache: "force-cache",
       next: {
         revalidate: 3600,
       },
