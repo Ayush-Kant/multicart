@@ -50,7 +50,15 @@ export default function AdminPayouts() {
       try {
         const res = await axios.get("/api/admin/payouts");
         setPayouts(res.data.payouts || []);
-        setTotals(res.data.totals || totals);
+        setTotals(
+          res.data.totals || {
+            gross: 0,
+            platformFees: 0,
+            paidOut: 0,
+            pending: 0,
+            reversed: 0,
+          }
+        );
       } catch (err: any) {
         setError(
           err?.response?.data?.message ||
