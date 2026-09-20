@@ -67,30 +67,53 @@ export async function GET(req: NextRequest) {
     const data = await response.json();
     const address = data.address || {};
 
+    /*
+     * Nominatim does not consistently return a "city" key in India.
+     * For locations such as hostels/campuses, the city can appear under
+     * city_district, town, municipality, district or county.
+     */
+    const resolvedCity =
+      address.city ||
+      address.city_district ||
+      address.town ||
+      address.village ||
+      address.municipality ||
+      address.district ||
+      address.county ||
+      address.state_district ||
+      "";
+
+    const resolvedArea =
+      address.neighbourhood ||
+      address.suburb ||
+      address.quarter ||
+      address.residential ||
+      address.hamlet ||
+      "";
+
     return NextResponse.json({
       latitude: lat,
       longitude: lon,
       displayName: data.display_name || "",
       address: {
-        buildingNumber: address.house_number || "",
+        buildingNumber:
+          address.house_number ||
+          address.building ||
+          "",
         street:
           address.road ||
           address.pedestrian ||
           address.footway ||
+          address.path ||
           "",
-        area:
-          address.neighbourhood ||
-          address.suburb ||
-          address.quarter ||
-          address.residential ||
-          "",
-        city:
-          address.city ||
-          address.town ||
-          address.village ||
-          address.municipality ||
-          "",
+        area: resolvedArea,
+        city: resolvedCity,
         state: address.state || "",
+        district:
+          address.district ||
+          address.city_district ||
+          address.state_district ||
+          "",
         pincode: address.postcode || "",
         country: address.country || "India",
         countryCode: address.country_code || "in",
