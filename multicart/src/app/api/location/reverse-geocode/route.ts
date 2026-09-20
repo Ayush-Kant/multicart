@@ -74,13 +74,13 @@ export async function GET(req: NextRequest) {
      */
     const resolvedCity =
       address.city ||
-      address.city_district ||
       address.town ||
       address.village ||
-      address.municipality ||
-      address.district ||
       address.county ||
+      address.district ||
       address.state_district ||
+      address.municipality ||
+      address.city_district ||
       "";
 
     const resolvedArea =
