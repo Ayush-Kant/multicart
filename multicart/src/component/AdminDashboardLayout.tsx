@@ -4,12 +4,13 @@ import { motion, AnimatePresence } from "framer-motion";
 
 // Icons
 import { MdDashboard } from "react-icons/md";
-import { FaUsers, FaShoppingBag, FaStore, FaCheckCircle, FaBox } from "react-icons/fa";
+import { FaShoppingBag, FaStore, FaCheckCircle, FaBox, FaMoneyBillWave } from "react-icons/fa";
 import { AiOutlineMenu, AiOutlineClose } from "react-icons/ai";
 import VendorRequest from "./vendorRequest";
 import VendorDetails from "./VendorDetails";
 import ProductRequest from "./ProductRequest";
 import AllOrdersPage from "./allOrderAdmin";
+import AdminPayouts from "./AdminPayouts";
 import AdminDashboardPage from "./adminDashbordComponent";
 
 export default function AdminDashbordLayout() {
@@ -32,7 +33,8 @@ export default function AdminDashbordLayout() {
       case "vendors": return <VendorDetails />;
       case "orders": return <AllOrdersPage />;
       case "vendor-approval": return <VendorRequest />;
-      case "product-approval": return <ProductRequest />;
+      case "product-approval": return <ProductRequest/>;
+      case "payouts": return <AdminPayouts />;
       default: return <AdminDashboardPage/>;
     }
   };
@@ -45,6 +47,7 @@ export default function AdminDashbordLayout() {
     { id: "orders", label: "User Orders", icon: <FaShoppingBag size={22} /> },
     { id: "vendor-approval", label: "Vendor Approval", icon: <FaCheckCircle size={22} /> },
     { id: "product-approval", label: "Product Requests", icon: <FaBox size={22} /> },
+    { id: "payouts", label: "Vendor Payouts", icon: <FaMoneyBillWave size={22} /> },
   ];
 
   return (
