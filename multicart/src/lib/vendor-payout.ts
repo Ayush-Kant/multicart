@@ -100,7 +100,16 @@ export const createOrGetVendorPayout = async (
     );
   }
 
-  const split = calculateMarketplaceSplit(order.productsTotal);
+  const storedSplitIsAvailable =
+    typeof order.platformFee === "number" &&
+    typeof order.vendorAmount === "number";
+
+  const split = storedSplitIsAvailable
+    ? {
+        platformFee: order.platformFee,
+        vendorAmount: order.vendorAmount,
+      }
+    : calculateMarketplaceSplit(order.productsTotal);
 
   const payoutData = {
     order: order._id,
