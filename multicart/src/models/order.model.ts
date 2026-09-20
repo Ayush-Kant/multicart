@@ -46,8 +46,18 @@ export interface IOrder extends Document {
     name: string;
     phone: string;
     address: string;
+    buildingNumber?: string;
+    street?: string;
+    area?: string;
+    landmark?: string;
     city: string;
+    state?: string;
     pincode: string;
+    country?: string;
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+    source?: "manual" | "current_location";
   };
 
   paymentDetails?: {
@@ -195,13 +205,26 @@ const OrderSchema = new Schema<IOrder>(
         type: String,
         required: true,
       },
+      buildingNumber: String,
+      street: String,
+      area: String,
+      landmark: String,
       city: {
         type: String,
         required: true,
       },
+      state: String,
       pincode: {
         type: String,
         required: true,
+      },
+      country: String,
+      latitude: Number,
+      longitude: Number,
+      accuracy: Number,
+      source: {
+        type: String,
+        enum: ["manual", "current_location"],
       },
     },
 
