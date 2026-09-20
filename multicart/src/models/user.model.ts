@@ -239,6 +239,21 @@ const userSchema = new mongoose.Schema<IUser>(
   { timestamps: true }
 );
 
+/*
+ * Next.js development hot reload can leave an older Mongoose User model
+ * cached in mongoose.models.User. When the saved-address field was added,
+ * that stale model silently dropped addresses on save. Rebuild only when
+ * the cached model does not contain the current addresses schema.
+ */
+const cachedUserModel = mongoose.models?.User;
+
+if (
+  cachedUserModel &&
+  !cachedUserModel.schema.path("addresses")
+) {
+  delete mongoose.models.User;
+}
+
 const User =
   mongoose.models?.User || mongoose.model<IUser>("User", userSchema);
 
