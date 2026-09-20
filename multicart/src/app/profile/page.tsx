@@ -10,7 +10,6 @@ import axios from "axios";
 import { ClipLoader } from "react-spinners";
 import { setUserData } from "@/redux/userSlice";
 import getCurrentUser from "@/hooks/getCurrentUser";
-import HomeButton from "@/component/HomeButton";
 
 
 export default function ProfilePage() {
@@ -118,9 +117,6 @@ export default function ProfilePage() {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white px-4 pt-24 pb-10"
     >
-      <div className="max-w-3xl mx-auto flex justify-end mb-4">
-        <HomeButton />
-      </div>
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
