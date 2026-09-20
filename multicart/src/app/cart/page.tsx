@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import HomeButton from "@/component/HomeButton";
 
 export default function UserCartPage() {
   const [cart, setCart] = useState<any[]>([]);
@@ -50,12 +51,25 @@ export default function UserCartPage() {
   }
 
   if (cart.length === 0) {
-    return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white p-6">Cart Empty</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white p-6">
+        <div className="max-w-5xl mx-auto flex justify-end mb-6">
+          <HomeButton />
+        </div>
+        <div className="flex items-center justify-center">
+          Cart Empty
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-black text-white p-6">
-      <div className="max-w-5xl mx-auto space-y-4">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex justify-end mb-6">
+          <HomeButton />
+        </div>
+        <div className="space-y-4">
         {cart.map((item) => (
           <div
             key={item.product._id}
