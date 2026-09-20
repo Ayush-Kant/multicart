@@ -17,6 +17,7 @@ export interface IOrder extends Document {
 
   /* ---------------- MARKETPLACE SETTLEMENT ---------------- */
   platformFee: number;
+  platformFeePercent: number;
   vendorAmount: number;
   payoutStatus:
     | "pending"
@@ -118,6 +119,13 @@ const OrderSchema = new Schema<IOrder>(
       type: Number,
       default: 0,
       min: 0,
+    },
+
+    platformFeePercent: {
+      type: Number,
+      default: 5,
+      min: 0,
+      max: 100,
     },
 
     vendorAmount: {
