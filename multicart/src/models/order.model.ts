@@ -225,6 +225,30 @@ const OrderSchema = new Schema<IOrder>(
   { timestamps: true }
 );
 
+/*
+ * Next.js development mode can hot-reload this module while Mongoose keeps
+ * the previously compiled model in mongoose.models.Order. After the payment
+ * method migrated from Stripe to Razorpay, that cached model may still have
+ * enum values ["cod", "stripe"] and reject new Razorpay orders.
+ *
+ * Rebuild only when the cached model is stale. Production processes normally
+ * compile this once, while this guard keeps local development consistent
+ * across hot reloads.
+ */
+const cachedOrderModel = mongoose.models.Order;
+
+if (cachedOrderModel) {
+  const paymentMethodPath = cachedOrderModel.schema.path("paymentMethod");
+  const enumValues =
+    paymentMethodPath?.options?.enum ||
+    (paymentMethodPath as any)?.enumValues ||
+    [];
+
+  if (!Array.from(enumValues).includes("razorpay")) {
+    delete mongoose.models.Order;
+  }
+}
+
 const Order =
   mongoose.models.Order ||
   mongoose.model<IOrder>("Order", OrderSchema);
