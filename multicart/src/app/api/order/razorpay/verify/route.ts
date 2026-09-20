@@ -5,6 +5,7 @@ import connectDb from "@/lib/db";
 import Order from "@/models/order.model";
 import { fetchRazorpayPayment } from "@/lib/razorpay";
 import { settlePaidOrder } from "@/lib/vendor-payout";
+import { finalizePaidOrdersForBuyer } from "@/lib/cart-checkout";
 
 const safeEqual = (expected: string, actual: string) => {
   const expectedBuffer = Buffer.from(expected, "utf8");
@@ -135,6 +136,11 @@ export async function POST(req: NextRequest) {
     await order.save();
 
     const payout = await settlePaidOrder(order._id.toString());
+
+    await finalizePaidOrdersForBuyer(
+      session.user.id,
+      [order]
+    );
 
     return NextResponse.json({
       success: true,
