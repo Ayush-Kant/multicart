@@ -125,15 +125,40 @@ export async function POST(req: NextRequest) {
     addresses.push(newAddress as any);
 
     user.addresses = addresses;
+    user.markModified("addresses");
     await user.save();
 
-    const savedAddress =
-      user.addresses?.[user.addresses.length - 1];
+    // Verify the data was actually persisted before reporting success.
+    const persistedUser = await User.findById(session.user.id)
+      .select("addresses")
+      .lean();
+
+    const persistedAddress =
+      persistedUser?.addresses?.find(
+        (address: any) =>
+          String(address._id) ===
+          String(user.addresses?.[user.addresses.length - 1]?._id)
+      );
+
+    if (!persistedAddress) {
+      console.error(
+        "ADDRESS PERSISTENCE VERIFICATION FAILED",
+        session.user.id
+      );
+
+      return NextResponse.json(
+        {
+          message:
+            "The address could not be persisted. Please try again.",
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       {
         message: "Address saved successfully.",
-        address: savedAddress,
+        address: persistedAddress,
       },
       { status: 201 }
     );
