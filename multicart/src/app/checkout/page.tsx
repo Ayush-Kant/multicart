@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { motion } from "framer-motion";
@@ -22,6 +22,8 @@ export default function CartCheckoutPage() {
     useState<"cod" | "razorpay">("cod");
   const [submitError, setSubmitError] = useState("");
   const [placingOrder, setPlacingOrder] = useState(false);
+  const activeCheckoutGroupId = useRef<string | null>(null);
+  const paymentCompleted = useRef(false);
 
   useEffect(() => {
     const loadCart = async () => {
@@ -128,6 +130,31 @@ export default function CartCheckoutPage() {
         }
       );
 
+      activeCheckoutGroupId.current =
+        response.data.checkoutGroupId;
+      paymentCompleted.current = false;
+
+      const cancelPendingCheckout = async () => {
+        const checkoutGroupId =
+          activeCheckoutGroupId.current;
+
+        if (!checkoutGroupId || paymentCompleted.current) {
+          return;
+        }
+
+        try {
+          await axios.post(
+            "/api/order/cart/cancel-pending",
+            { checkoutGroupId }
+          );
+        } catch (cancelError) {
+          console.error(
+            "Unable to rollback failed cart checkout:",
+            cancelError
+          );
+        }
+      };
+
       const options = {
         key: response.data.keyId,
         amount: response.data.amount,
@@ -165,6 +192,9 @@ export default function CartCheckoutPage() {
               }
             );
 
+            paymentCompleted.current = true;
+            activeCheckoutGroupId.current = null;
+
             router.replace(
               "/order-success?checkoutGroupId=" +
                 encodeURIComponent(
@@ -185,12 +215,15 @@ export default function CartCheckoutPage() {
 
       razorpay.on(
         "payment.failed",
-        (paymentFailure: any) => {
+        async (paymentFailure: any) => {
+          await cancelPendingCheckout();
+
           setSubmitError(
             paymentFailure?.error?.description ||
-              "Payment failed. Please try again."
+              "Payment failed. Your cart has been kept intact. Please try again."
           );
           setPlacingOrder(false);
+          activeCheckoutGroupId.current = null;
         }
       );
 
