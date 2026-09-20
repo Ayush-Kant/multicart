@@ -139,10 +139,10 @@ export default function Navbar({ user }: { user?: IUser }) {
               <div className="hidden md:flex items-center gap-4 flex-1 min-w-0">
                 <HeaderLocation
                   userId={String(
-                  currentUser._id ||
-                    (currentUser as any).id ||
-                    currentUser.email
-                )}
+                    currentUser._id ||
+                      (currentUser as any).id ||
+                      currentUser.email
+                  )}
                   defaultRecipientName={currentUser.name}
                   defaultPhone={currentUser.phone || ""}
                 />
