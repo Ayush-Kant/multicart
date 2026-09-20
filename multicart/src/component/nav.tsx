@@ -14,6 +14,7 @@ import {
   AiOutlineShop,
   AiOutlineLogin,
   AiOutlineLogout,
+  AiOutlineEnvironment,
 } from "react-icons/ai";
 import { GoListUnordered } from "react-icons/go";
 import { useRouter } from "next/navigation";
@@ -313,6 +314,14 @@ const ProfileDropdown = ({ router, close }: any) => (
       onClick={() => router.push("/profile")}
       close={close}
     />
+    {router && (
+      <DropdownBtn
+        Icon={AiOutlineEnvironment}
+        label="My Addresses"
+        onClick={() => router.push("/addresses")}
+        close={close}
+      />
+    )}
     <DropdownBtn
       Icon={AiOutlineLogin}
       label="Sign In"
@@ -390,6 +399,13 @@ const Sidebar = ({ close, router }: any) => (
         Icon={AiOutlineUser}
         label="Profile"
         path="/profile"
+        router={router}
+        close={close}
+      />
+      <SidebarLink
+        Icon={AiOutlineEnvironment}
+        label="My Addresses"
+        path="/addresses"
         router={router}
         close={close}
       />
