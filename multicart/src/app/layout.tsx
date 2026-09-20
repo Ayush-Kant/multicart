@@ -23,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="w-full min-h-screen bg-linear-to-b from-black pt-16">
+      <body className="w-full min-h-screen bg-linear-to-b from-black">
         <Provider>
           <StoreProvider>
             <InitUser />
