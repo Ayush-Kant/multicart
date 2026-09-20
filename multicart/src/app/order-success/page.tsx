@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { FaCheckCircle, FaBox } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import HomeButton from "@/component/HomeButton";
 
 export default function OrderSuccessPage() {
   const router = useRouter();
@@ -64,6 +65,9 @@ export default function OrderSuccessPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-900 via-black to-gray-900 px-4 py-10 text-white">
       <div className="max-w-3xl mx-auto">
+        <div className="flex justify-end mb-6">
+          <HomeButton />
+        </div>
         <motion.div
           initial={{ opacity: 0, scale: 0.7 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -191,14 +195,19 @@ export default function OrderSuccessPage() {
           </motion.div>
         )}
 
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => router.push("/orders")}
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push("/orders")}
           className="mt-6 w-full py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold"
-        >
-          Go to Orders Page
-        </motion.button>
+          >
+            Go to Orders Page
+          </motion.button>
+          <div className="flex items-center justify-center rounded-lg border border-white/10 bg-white/5">
+            <HomeButton label="Continue Shopping" />
+          </div>
+        </div>
       </div>
     </div>
   );
