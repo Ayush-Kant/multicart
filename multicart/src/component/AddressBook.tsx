@@ -305,14 +305,18 @@ export default function AddressBook({
     setFormError("");
 
     try {
+      const existingEditingAddress = editingId
+        ? addresses.find(
+            (address) =>
+              String(address._id) === String(editingId)
+          )
+        : null;
+
       const payload = {
         ...cleaned,
-        isDefault:
-          addresses.length === 0 ||
-          addresses.find(
-            (address) => String(address._id) === editingId
-          )?.isDefault ||
-          false,
+        isDefault: editingId
+          ? Boolean(existingEditingAddress?.isDefault)
+          : addresses.length === 0,
       };
 
       const response = editingId
