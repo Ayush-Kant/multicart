@@ -13,6 +13,9 @@ export async function POST(req: NextRequest) {
   let createdOrderId: string | null = null;
   let stockReserved = false;
   let userUpdated = false;
+  let rollbackProductId: string | null = null;
+  let rollbackQuantity = 0;
+  let rollbackBuyerId: string | null = null;
 
   try {
     await connectDb();
@@ -132,6 +135,9 @@ export async function POST(req: NextRequest) {
     });
 
     createdOrderId = order._id.toString();
+    rollbackProductId = productId;
+    rollbackQuantity = quantity;
+    rollbackBuyerId = userId;
 
     await Product.findByIdAndUpdate(productId, {
       $inc: { stock: -quantity },
@@ -173,41 +179,27 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
   } catch (error: any) {
-    if (createdOrderId) {
+    if (stockReserved && rollbackProductId) {
       try {
-        if (stockReserved) {
-          await Product.findOneAndUpdate(
-            { _id: new (await import("mongoose")).default.Types.ObjectId(createdOrderId) },
-            { $inc: { stock: 0 } }
-          );
-        }
+        await Product.findByIdAndUpdate(rollbackProductId, {
+          $inc: { stock: rollbackQuantity },
+        });
       } catch {}
+    }
 
+    if (userUpdated && rollbackBuyerId && rollbackProductId) {
+      try {
+        await User.findByIdAndUpdate(rollbackBuyerId, {
+          $pull: { orders: createdOrderId },
+          $push: { cart: { product: rollbackProductId, quantity: rollbackQuantity } },
+        });
+      } catch {}
+    }
+
+    if (createdOrderId) {
       try {
         await Order.findByIdAndDelete(createdOrderId);
       } catch {}
-
-      if (stockReserved && userUpdated) {
-        try {
-          const failedOrder = await Order.findById(createdOrderId);
-          const productId = failedOrder?.products?.[0]?.product?.toString();
-          const quantity = failedOrder?.products?.[0]?.quantity;
-
-          if (productId && quantity) {
-            await Product.findByIdAndUpdate(productId, {
-              $inc: { stock: quantity },
-            });
-
-            await User.findByIdAndUpdate(
-              failedOrder.buyer,
-              {
-                $pull: { orders: failedOrder._id },
-                $push: { cart: { product: productId, quantity } },
-              }
-            );
-          }
-        } catch {}
-      }
     }
 
     console.error("❌ RAZORPAY ORDER ERROR:", error);
