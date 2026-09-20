@@ -5,7 +5,6 @@ import AdminDashboard from "@/component/adminDashboard";
 import EditRolePhone from "@/component/editRolePhone";
 import EditVendorDetails from "@/component/editVendorDetails";
 import Footer from "@/component/footer";
-import Navbar from "@/component/nav";
 import UserDashboard from "@/component/userDashboard";
 import VenderDashboard from "@/component/venderDashboard";
 
@@ -39,7 +38,6 @@ export default async function Home() {
   return (
    
     <div className=" flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900 font-sans flex-col ">
-    <Navbar user = {plainUser}/>
     {user.role == "user" ?(<UserDashboard/>) : user.role == "admin" ?(<AdminDashboard/>) : <VenderDashboard user = {plainUser}/>}
      <Footer user = {plainUser}/>
      
