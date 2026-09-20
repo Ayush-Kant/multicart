@@ -97,6 +97,9 @@ export default function AllOrdersPage() {
                     <span className="text-xs text-gray-400">
                       {order.address?.phone}
                     </span>
+                    <span className="block text-xs text-gray-500 mt-1 max-w-[220px]">
+                      {order.address?.address}
+                    </span>
                   </td>
 
                   <td className="p-4 capitalize">
@@ -180,6 +183,9 @@ export default function AllOrdersPage() {
               </p>
               <p className="text-xs text-gray-400">
                 {order.address?.phone}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {order.address?.address}
               </p>
             </div>
 
