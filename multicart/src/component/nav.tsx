@@ -214,7 +214,11 @@ export default function Navbar({ user }: { user?: IUser }) {
             <div className="md:hidden flex items-center gap-2 ml-auto">
               {currentUser.role === "user" && (
                 <HeaderLocation
-                  userId={String(currentUser._id || "")}
+                  userId={String(
+                    currentUser._id ||
+                      (currentUser as any).id ||
+                      currentUser.email
+                  )}
                   defaultRecipientName={currentUser.name}
                   defaultPhone={currentUser.phone || ""}
                   mobile
