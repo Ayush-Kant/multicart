@@ -68,25 +68,31 @@ export async function POST(req: NextRequest) {
 
       await connectDb();
 
-      const order = await Order.findOne({
+      const orders = await Order.find({
         paymentMethod: "razorpay",
         "paymentDetails.razorpayOrderId": razorpayOrderId,
       });
 
-      if (!order) {
+      if (!orders.length) {
         return NextResponse.json(
           { received: true, ignored: true },
           { status: 200 }
         );
       }
 
-      const expectedAmount = Math.round(order.totalAmount * 100);
+      const expectedAmount = Math.round(
+        orders.reduce(
+          (sum, order) => sum + Number(order.totalAmount || 0),
+          0
+        ) * 100
+      );
 
       if (amount !== expectedAmount) {
         console.error("❌ Razorpay webhook amount mismatch", {
-          orderId: order._id.toString(),
+          razorpayOrderId,
           expectedAmount,
           receivedAmount: amount,
+          orderIds: orders.map((order) => order._id.toString()),
         });
 
         return NextResponse.json(
@@ -95,21 +101,31 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      order.isPaid = true;
-      order.paymentDetails = {
-        razorpayOrderId,
-        razorpayPaymentId,
-      };
+      const payouts = [];
 
-      await order.save();
+      for (const order of orders) {
+        order.isPaid = true;
+        order.paymentDetails = {
+          razorpayOrderId,
+          razorpayPaymentId,
+        };
 
-      const payout = await settlePaidOrder(order._id.toString());
+        await order.save();
+
+        const payout = await settlePaidOrder(
+          order._id.toString()
+        );
+
+        if (payout) {
+          payouts.push(payout);
+        }
+      }
 
       return NextResponse.json(
         {
           received: true,
-          payoutId: payout?._id || null,
-          payoutStatus: payout?.status || order.payoutStatus,
+          orderIds: orders.map((order) => order._id),
+          payoutIds: payouts.map((payout) => payout._id),
         },
         { status: 200 }
       );
