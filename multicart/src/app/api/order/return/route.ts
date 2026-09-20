@@ -128,10 +128,14 @@ export async function POST(req: NextRequest) {
     order.orderStatus = "returned";
     order.returnedAmount = returnedAmount;
 
-    for (const item of order.products) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: { stock: item.quantity },
-      });
+    for (const item of order.products as any[]) {
+      const productId = item.product?._id || item.product;
+
+      if (productId) {
+        await Product.findByIdAndUpdate(productId, {
+          $inc: { stock: item.quantity },
+        });
+      }
     }
 
     await order.save();
