@@ -22,10 +22,8 @@ import {
 export async function POST(req: NextRequest) {
   let createdOrderId: string | null = null;
   let stockReserved = false;
-  let userUpdated = false;
   let rollbackProductId: string | null = null;
   let rollbackQuantity = 0;
-  let rollbackBuyerId: string | null = null;
   let razorpayOrderId: string | null = null;
 
   try {
@@ -230,21 +228,14 @@ export async function POST(req: NextRequest) {
     createdOrderId = order._id.toString();
     rollbackProductId = productId;
     rollbackQuantity = quantity;
-    rollbackBuyerId = userId;
 
     await Product.findByIdAndUpdate(productId, {
       $inc: { stock: -quantity },
     });
     stockReserved = true;
 
-    user.cart = user.cart.filter(
-      (item: any) => item.product.toString() !== productId
-    );
-    user.orders = user.orders || [];
-    user.orders.push(order._id);
-
-    await user.save();
-    userUpdated = true;
+    // Keep the cart untouched until Razorpay payment is captured
+    // and verified successfully.
 
     const razorpayOrder = await createRazorpayOrder({
       amount: amountInPaise,
@@ -303,20 +294,6 @@ export async function POST(req: NextRequest) {
         try {
           await Product.findByIdAndUpdate(rollbackProductId, {
             $inc: { stock: rollbackQuantity },
-          });
-        } catch {}
-      }
-
-      if (userUpdated && rollbackBuyerId && rollbackProductId) {
-        try {
-          await User.findByIdAndUpdate(rollbackBuyerId, {
-            $pull: { orders: createdOrderId },
-            $push: {
-              cart: {
-                product: rollbackProductId,
-                quantity: rollbackQuantity,
-              },
-            },
           });
         } catch {}
       }
