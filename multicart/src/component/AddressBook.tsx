@@ -24,7 +24,7 @@ import {
 type AddressBookProps = {
   selectable?: boolean;
   selectedAddressId?: string | null;
-  onSelect?: (address: SavedAddress) => void;
+  onSelect?: (address: SavedAddress | null) => void;
   onAddressesChange?: (addresses: SavedAddress[]) => void;
 };
 
