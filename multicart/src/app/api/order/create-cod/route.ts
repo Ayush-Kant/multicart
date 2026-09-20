@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import Order from "@/models/order.model";
 import Product from "@/models/product.model";
 import User from "@/models/user.model";
+import { calculateOrderCharges } from "@/lib/marketplace-finance";
 
 export async function POST(req: NextRequest) {
   let createdOrderId: string | null = null;
@@ -121,11 +122,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const productsTotal = product.price * quantity;
-    const deliveryCharge = product.freeDelivery ? 0 : 50;
-    const serviceCharge = 30;
-    const totalAmount =
-      productsTotal + deliveryCharge + serviceCharge;
+    const charges = calculateOrderCharges({
+      productPrice: product.price,
+      quantity,
+      freeDelivery: Boolean(product.freeDelivery),
+    });
 
     const order = await Order.create({
       buyer: userId,
@@ -137,10 +138,10 @@ export async function POST(req: NextRequest) {
         },
       ],
       productVendor: product.vendor,
-      productsTotal,
-      deliveryCharge,
-      serviceCharge,
-      totalAmount,
+      productsTotal: charges.productsTotal,
+      deliveryCharge: charges.deliveryCharge,
+      serviceCharge: charges.serviceCharge,
+      totalAmount: charges.totalAmount,
       paymentMethod: "cod",
       isPaid: false,
       orderStatus: "pending",
