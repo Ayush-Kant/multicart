@@ -97,9 +97,9 @@ export default function AddressBook({
     loadAddresses();
   }, []);
 
-  const updateField = (
-    field: keyof typeof form,
-    value: string | number | undefined
+  const updateField = <K extends keyof typeof form>(
+    field: K,
+    value: typeof form[K]
   ) => {
     setForm((current) => ({
       ...current,
