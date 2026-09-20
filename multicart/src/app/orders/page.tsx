@@ -7,7 +7,6 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { setAllOrderData } from "@/redux/orderSlice";
 import { motion } from "framer-motion";
 import { FiTruck } from "react-icons/fi";
-import { span } from "framer-motion/client";
 
 export default function OrdersPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -169,7 +168,7 @@ export default function OrdersPage() {
 
   // Cancel logic
   const isCancelDisabled = (order: any) =>
-    order.isPaid === true && order.paymentMethod === "stripe";
+    order.isPaid === true && order.paymentMethod === "razorpay";
 
   const handleCancelOrder = async (orderId: string) => {
     try {
@@ -511,8 +510,26 @@ export default function OrdersPage() {
                   <span>₹ {selectedOrder.totalAmount}</span>
                 </div>
               </div>
+              {typeof selectedOrder.platformFee === "number" && (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span>Platform Fee (Vendor Settlement)</span>
+                    <span>₹ {selectedOrder.platformFee}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Vendor Earnings</span>
+                    <span>₹ {selectedOrder.vendorAmount || 0}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Payout Status</span>
+                    <span className="capitalize">{selectedOrder.payoutStatus || "pending"}</span>
+                  </div>
+                  <hr className="my-2 border-white/10" />
+                </>
+              )}
+
               {selectedOrder.orderStatus === "delivered" &&
-                selectedOrder.deliveryDate && (
+                selectedOrder.deliveryDate && (2
                   <div className="mt-3 text-sm text-green-400">
                     Delivered on:{" "}
                     {new Date(selectedOrder.deliveryDate).toLocaleDateString("en-IN")}
@@ -520,7 +537,7 @@ export default function OrdersPage() {
                 )}
 
               {/* IMPORTANT NOTE */}
-              {selectedOrder.isPaid == true && selectedOrder.paymentMethod == "stripe" && <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs rounded-lg p-3 mt-4">
+              {selectedOrder.isPaid == true && selectedOrder.paymentMethod == "razorpay" && <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs rounded-lg p-3 mt-4">
                 <p className="font-semibold mb-1">Important Note:</p>
                 <ul className="list-disc pl-4 space-y-1">
                   <li>
