@@ -16,7 +16,6 @@ import {
 import {
   AddressErrors,
   AddressLabel,
-  AddressSource,
   SavedAddress,
   normalizeAddressInput,
 } from "@/lib/address-validation";
@@ -441,14 +440,29 @@ export default function AddressBook({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={openAddForm}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold transition"
-        >
-          <FaPlus size={12} />
-          Add New Address
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              openAddForm();
+              window.setTimeout(() => useCurrentLocation(), 0);
+            }}
+            disabled={locating}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/15 text-blue-200 font-semibold transition disabled:opacity-50"
+          >
+            <FaLocationArrow size={12} />
+            {locating ? "Detecting Location..." : "Use Current Location"}
+          </button>
+
+          <button
+            type="button"
+            onClick={openAddForm}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold transition"
+          >
+            <FaPlus size={12} />
+            Add New Address
+          </button>
+        </div>
       </div>
 
       {formError && (
