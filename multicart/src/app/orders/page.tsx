@@ -503,7 +503,7 @@ export default function OrdersPage() {
 
               <hr className="my-4 border-white/10" />
 
-              {/* Billing */
+              {/* Billing */}
               <h3 className="font-semibold mb-2">Invoice</h3>
 
               <div className="text-sm space-y-1">
