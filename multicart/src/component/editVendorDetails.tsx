@@ -34,9 +34,9 @@ export default function EditVendorDetails() {
 
   const router = useRouter();
 
-  const updateField = (
-    field: keyof typeof form,
-    value: string
+  const updateField = <K extends keyof typeof form>(
+    field: K,
+    value: typeof form[K]
   ) => {
     setForm((current) => ({
       ...current,
@@ -319,7 +319,10 @@ export default function EditVendorDetails() {
                   className={inputClass}
                   value={form.accountType}
                   onChange={(e) =>
-                    updateField("accountType", e.target.value)
+                    updateField(
+                      "accountType",
+                      e.target.value as typeof form.accountType
+                    )
                   }
                 >
                   <option value="savings" className="bg-black">
