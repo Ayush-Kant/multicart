@@ -173,13 +173,7 @@ export default function UserCartPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => router.push("/category")}
-            className="text-sm text-gray-300 hover:text-white transition w-fit"
-          >
-            Continue Shopping
-          </button>
+
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6 xl:items-start">
@@ -374,13 +368,23 @@ export default function UserCartPage() {
               payment and order information consistent with the current checkout flow.
             </div>
 
-            <button
-              type="button"
-              onClick={() => router.push("/category")}
-              className="w-full mt-5 py-3 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white font-semibold transition"
-            >
-              Continue Shopping
-            </button>
+            <div className="mt-5 space-y-3">
+              <button
+                type="button"
+                onClick={() => router.push("/checkout")}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white font-semibold transition shadow-lg shadow-blue-950/30"
+              >
+                Checkout All Products
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/category")}
+                className="w-full py-3 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white font-semibold transition"
+              >
+                Continue Shopping
+              </button>
+            </div>
           </motion.aside>
         </div>
       </div>
