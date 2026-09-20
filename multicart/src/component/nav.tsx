@@ -93,7 +93,7 @@ export default function Navbar({ user }: { user?: IUser }) {
   }, [currentUser]);
 
   return (
-    <nav className="fixed top-0 left-0 w-full bg-black text-white z-50 shadow-lg">
+    <nav className="sticky top-0 w-full bg-black text-white z-50 shadow-lg">
       <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
         {/* Logo */}
         <div
