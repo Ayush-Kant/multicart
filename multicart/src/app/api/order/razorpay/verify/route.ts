@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import connectDb from "@/lib/db";
 import Order from "@/models/order.model";
 import { fetchRazorpayPayment } from "@/lib/razorpay";
+import { settlePaidOrder } from "@/lib/vendor-payout";
 
 const safeEqual = (expected: string, actual: string) => {
   const expectedBuffer = Buffer.from(expected, "utf8");
@@ -56,14 +57,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (order.isPaid) {
-      return NextResponse.json({
-        success: true,
-        message: "Payment already verified",
-        orderId: order._id,
-      });
-    }
-
     if (order.orderStatus === "cancelled") {
       return NextResponse.json(
         { message: "This order has already been cancelled" },
@@ -88,9 +81,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const webhookSecret = process.env.RAZORPAY_KEY_SECRET;
+    const paymentSignatureSecret = process.env.RAZORPAY_KEY_SECRET;
 
-    if (!webhookSecret) {
+    if (!paymentSignatureSecret) {
       return NextResponse.json(
         { message: "Razorpay server credentials are not configured" },
         { status: 500 }
@@ -98,7 +91,7 @@ export async function POST(req: NextRequest) {
     }
 
     const generatedSignature = crypto
-      .createHmac("sha256", webhookSecret)
+      .createHmac("sha256", paymentSignatureSecret)
       .update(`${storedRazorpayOrderId}|${razorpay_payment_id}`)
       .digest("hex");
 
@@ -126,7 +119,9 @@ export async function POST(req: NextRequest) {
 
     if (payment.status !== "captured") {
       return NextResponse.json(
-        { message: `Payment is not captured yet (status: ${payment.status})` },
+        {
+          message: `Payment is not captured yet (status: ${payment.status})`,
+        },
         { status: 409 }
       );
     }
@@ -139,10 +134,14 @@ export async function POST(req: NextRequest) {
 
     await order.save();
 
+    const payout = await settlePaidOrder(order._id.toString());
+
     return NextResponse.json({
       success: true,
-      message: "Payment verified successfully",
+      message: "Payment verified and vendor settlement recorded",
       orderId: order._id,
+      payoutId: payout?._id || null,
+      payoutStatus: payout?.status || order.payoutStatus,
     });
   } catch (error: any) {
     console.error("❌ RAZORPAY VERIFY ERROR:", error);
