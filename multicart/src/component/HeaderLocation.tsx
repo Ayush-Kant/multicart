@@ -337,9 +337,18 @@ export default function HeaderLocation({
     setError("");
 
     try {
+      const existingEditingAddress = editingId
+        ? addresses.find(
+            (address) =>
+              String(address._id) === String(editingId)
+          )
+        : null;
+
       const payload = {
         ...cleaned,
-        isDefault: addresses.length === 0 || !editingId,
+        isDefault: editingId
+          ? Boolean(existingEditingAddress?.isDefault)
+          : addresses.length === 0,
       };
 
       const response = editingId
