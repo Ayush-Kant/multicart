@@ -31,43 +31,65 @@ export default function AdminDashboardPage() {
   );
 
   const vendors = allVendorData || [];
+  const products = allProductsData || [];
+  const orders = allOrderData || [];
 
   const pendingVendors = vendors.filter(
     (v: any) => v.verificationStatus === "pending"
   );
 
-  const pendingProducts = allProductsData.filter(
+  const pendingProducts = products.filter(
     (p: any) => p.verificationStatus === "pending"
   );
 
-  const deliveredOrders = allOrderData.filter(
+  const deliveredOrders = orders.filter(
     (o: any) => o.orderStatus === "delivered"
   );
-  const cancelledOrders = allOrderData.filter(
+  const cancelledOrders = orders.filter(
     (o: any) => o.orderStatus === "cancelled"
   );
-  const returnedOrders = allOrderData.filter(
+  const returnedOrders = orders.filter(
     (o: any) => o.orderStatus === "returned"
   );
-  const remainingOrders = allOrderData.filter(
+  const remainingOrders = orders.filter(
     (o: any) =>
       !["delivered", "cancelled", "returned"].includes(o.orderStatus)
   );
 
-  let totalEarnings = 0;
-  deliveredOrders.forEach((o: any) => {
-    if (o.isPaid) totalEarnings += o.totalAmount;
+  const validOrders = orders.filter(
+    (o: any) => !["cancelled", "returned"].includes(o.orderStatus)
+  );
+
+  let gmv = 0;
+  let platformRevenue = 0;
+  let vendorEarnings = 0;
+  let paidOut = 0;
+  let pendingPayout = 0;
+
+  validOrders.forEach((order: any) => {
+    gmv += Number(order.productsTotal || 0);
+    platformRevenue += Number(order.platformFee || 0);
+
+    if (order.payoutStatus === "paid") {
+      vendorEarnings += Number(order.vendorAmount || 0);
+      paidOut += Number(order.vendorAmount || 0);
+    } else if (
+      ["pending", "processing"].includes(order.payoutStatus)
+    ) {
+      pendingPayout += Number(order.vendorAmount || 0);
+    }
   });
 
   const vendorOrderMap: Record<string, number> = {};
-  allOrderData.forEach((o: any) => {
-    const name = o.productVendor?.shopName || "Unknown";
+  orders.forEach((order: any) => {
+    const name = order.productVendor?.shopName || "Unknown";
     vendorOrderMap[name] = (vendorOrderMap[name] || 0) + 1;
   });
 
   const vendorOrderGraph = Object.keys(vendorOrderMap).map(
     (name) => ({
-      vendor: name.length > 14 ? name.slice(0, 14) + "..." : name,
+      vendor:
+        name.length > 14 ? name.slice(0, 14) + "..." : name,
       orders: vendorOrderMap[name],
     })
   );
@@ -84,32 +106,55 @@ export default function AdminDashboardPage() {
   return (
     <div className="min-h-screen w-full px-4 sm:px-6 py-6 text-white">
       <div className="max-w-full mx-auto space-y-8">
-
-        {/* HEADER */}
-        <h1 className="text-xl sm:text-2xl font-bold">
-          Admin Dashboard
-        </h1>
-
-        {/* ================= STATS ================= */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <StatBox title="Total Vendors" value={vendors.length} />
-          <StatBox title="Pending Vendors" value={pendingVendors.length} />
-          <StatBox title="Total Products" value={allProductsData.length} />
-          <StatBox title="Pending Products" value={pendingProducts.length} />
-          <StatBox title="Total Orders" value={allOrderData.length} />
-          <StatBox title="Total Earnings" value={`₹ ${totalEarnings}`} />
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold">
+            Admin Dashboard
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">
+            Marketplace financial and operational overview.
+          </p>
         </div>
 
-        {/* ================= VENDOR DETAILS ================= */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+          <StatBox title="Vendors" value={vendors.length} />
+          <StatBox
+            title="Pending Vendors"
+            value={pendingVendors.length}
+          />
+          <StatBox title="Products" value={products.length} />
+          <StatBox title="Orders" value={orders.length} />
+          <StatBox title="GMV" value={`₹ ${gmv}`} />
+          <StatBox
+            title="Platform Revenue"
+            value={`₹ ${platformRevenue}`}
+          />
+          <StatBox
+            title="Pending Payout"
+            value={`₹ ${pendingPayout}`}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
+          <StatBox
+            title="Vendor Earnings"
+            value={`₹ ${vendorEarnings}`}
+          />
+          <StatBox title="Paid Out" value={`₹ ${paidOut}`} />
+          <StatBox
+            title="Pending Products"
+            value={pendingProducts.length}
+          />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {vendors.map((vendor: any) => {
-            const vendorProducts = allProductsData.filter(
+            const vendorProducts = products.filter(
               (p: any) =>
                 String(p.vendor?._id || p.vendor) ===
                 String(vendor._id)
             );
 
-            const vendorOrders = allOrderData.filter(
+            const vendorOrders = orders.filter(
               (o: any) =>
                 String(o.productVendor?._id || o.productVendor) ===
                 String(vendor._id)
@@ -123,10 +168,16 @@ export default function AdminDashboardPage() {
               (o: any) => o.orderStatus === "returned"
             ).length;
 
+            let vendorGross = 0;
+            let vendorFee = 0;
             let vendorEarning = 0;
-            vendorOrders.forEach((o: any) => {
-              if (o.orderStatus === "delivered" && o.isPaid) {
-                vendorEarning += o.totalAmount;
+
+            vendorOrders.forEach((order: any) => {
+              vendorGross += Number(order.productsTotal || 0);
+              vendorFee += Number(order.platformFee || 0);
+
+              if (order.payoutStatus === "paid") {
+                vendorEarning += Number(order.vendorAmount || 0);
               }
             });
 
@@ -136,7 +187,7 @@ export default function AdminDashboardPage() {
                 className="bg-white/5 border border-white/10 rounded-xl p-4"
               >
                 <h2 className="font-semibold text-base truncate">
-                  {vendor.shopName}
+                  {vendor.shopName || vendor.name}
                 </h2>
 
                 <p className="text-xs text-gray-400 mb-2">
@@ -161,8 +212,17 @@ export default function AdminDashboardPage() {
                   <p className="text-orange-400">
                     Returned: {returned}
                   </p>
+                  <p>
+                    Gross sales:{" "}
+                    <span className="font-semibold">
+                      ₹ {vendorGross}
+                    </span>
+                  </p>
+                  <p className="text-yellow-300">
+                    Platform fee: ₹ {vendorFee}
+                  </p>
                   <p className="text-green-400 font-semibold">
-                    Earnings: ₹ {vendorEarning}
+                    Paid earnings: ₹ {vendorEarning}
                   </p>
                 </div>
               </div>
@@ -170,17 +230,17 @@ export default function AdminDashboardPage() {
           })}
         </div>
 
-        {/* ================= GRAPHS ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          {/* BAR GRAPH */}
           <div className="bg-white/5 border border-white/10 rounded-xl p-4 h-[280px] sm:h-[350px]">
             <h2 className="font-semibold mb-2 text-sm">
               Vendor-wise Orders
             </h2>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={vendorOrderGraph}>
-                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  strokeOpacity={0.2}
+                />
                 <XAxis
                   dataKey="vendor"
                   interval={0}
@@ -196,17 +256,32 @@ export default function AdminDashboardPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* PIE + STATUS */}
           <div className="bg-white/5 border border-white/10 rounded-xl p-4">
             <h2 className="font-semibold mb-3 text-sm">
               Order Status Distribution
             </h2>
 
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <StatusBox label="Delivered" value={deliveredOrders.length} color="text-green-400" />
-              <StatusBox label="Pending" value={remainingOrders.length} color="text-blue-400" />
-              <StatusBox label="Cancelled" value={cancelledOrders.length} color="text-red-400" />
-              <StatusBox label="Returned" value={returnedOrders.length} color="text-orange-400" />
+              <StatusBox
+                label="Delivered"
+                value={deliveredOrders.length}
+                color="text-green-400"
+              />
+              <StatusBox
+                label="Pending"
+                value={remainingOrders.length}
+                color="text-blue-400"
+              />
+              <StatusBox
+                label="Cancelled"
+                value={cancelledOrders.length}
+                color="text-red-400"
+              />
+              <StatusBox
+                label="Returned"
+                value={returnedOrders.length}
+                color="text-orange-400"
+              />
             </div>
 
             <div className="h-[220px] sm:h-[260px]">
@@ -229,16 +304,19 @@ export default function AdminDashboardPage() {
               </ResponsiveContainer>
             </div>
           </div>
-
         </div>
       </div>
     </div>
   );
 }
 
-/* ================= COMPONENTS ================= */
-
-function StatBox({ title, value }: { title: string; value: any }) {
+function StatBox({
+  title,
+  value,
+}: {
+  title: string;
+  value: any;
+}) {
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl p-4">
       <p className="text-xs uppercase text-gray-400">{title}</p>
