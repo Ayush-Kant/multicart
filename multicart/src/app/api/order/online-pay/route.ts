@@ -4,41 +4,38 @@ import { auth } from "@/auth";
 import Order from "@/models/order.model";
 import Product from "@/models/product.model";
 import User from "@/models/user.model";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+import {
+  createRazorpayOrder,
+  getRazorpayKeyId,
+} from "@/lib/razorpay";
 
 export async function POST(req: NextRequest) {
+  let createdOrderId: string | null = null;
+  let stockReserved = false;
+  let userUpdated = false;
+
   try {
     await connectDb();
 
-    // ✅ AUTH
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const userId = session.user.id;
+    const { productId, quantity, address } = await req.json();
 
-    // ✅ BODY DATA
-    const {
-      productId,
-      quantity,
-      address,
-      amount,
-      deliveryCharge,
-      serviceCharge,
-    } = await req.json();
-
-    // ✅ BASIC VALIDATION
-    if (!productId || !quantity) {
+    if (
+      !productId ||
+      !Number.isInteger(quantity) ||
+      quantity <= 0
+    ) {
       return NextResponse.json(
-        { message: "ProductId and quantity required" },
+        { message: "Valid productId and quantity are required" },
         { status: 400 }
       );
     }
 
-    // ✅ ADDRESS VALIDATION (UNCHANGED)
     if (
       !address?.name ||
       !address?.phone ||
@@ -52,19 +49,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ AMOUNT VALIDATION (UNCHANGED)
-    if (
-      typeof amount !== "number" ||
-      typeof deliveryCharge !== "number" ||
-      typeof serviceCharge !== "number"
-    ) {
-      return NextResponse.json(
-        { message: "Invalid amount, deliveryCharge or serviceCharge" },
-        { status: 400 }
-      );
-    }
-
-    // ✅ LOAD USER
     const user = await User.findById(userId);
     if (!user || !user.cart) {
       return NextResponse.json(
@@ -73,7 +57,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ CHECK PRODUCT EXISTS IN CART
     const cartItem = user.cart.find(
       (item: any) => item.product.toString() === productId
     );
@@ -85,7 +68,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ LOAD PRODUCT
+    if (cartItem.quantity !== quantity) {
+      return NextResponse.json(
+        { message: "Checkout quantity no longer matches your cart" },
+        { status: 409 }
+      );
+    }
+
     const product: any = await Product.findById(productId);
     if (!product) {
       return NextResponse.json(
@@ -94,7 +83,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ STOCK CHECK
+    if (product.verificationStatus !== "approved") {
+      return NextResponse.json(
+        { message: "This product is not currently available for purchase" },
+        { status: 400 }
+      );
+    }
+
     if (product.stock < quantity) {
       return NextResponse.json(
         { message: `Insufficient stock for ${product.title}` },
@@ -103,11 +98,20 @@ export async function POST(req: NextRequest) {
     }
 
     const productsTotal = product.price * quantity;
+    const deliveryCharge = product.freeDelivery ? 0 : 50;
+    const serviceCharge = 30;
+    const totalAmount = productsTotal + deliveryCharge + serviceCharge;
+    const amountInPaise = Math.round(totalAmount * 100);
 
-    // ✅ CREATE ORDER (SINGLE PRODUCT)
+    if (!Number.isFinite(amountInPaise) || amountInPaise <= 0) {
+      return NextResponse.json(
+        { message: "Invalid order amount" },
+        { status: 400 }
+      );
+    }
+
     const order = await Order.create({
       buyer: userId,
-
       products: [
         {
           product: product._id,
@@ -115,63 +119,99 @@ export async function POST(req: NextRequest) {
           price: product.price,
         },
       ],
-
       productVendor: product.vendor,
-
       productsTotal,
       deliveryCharge,
       serviceCharge,
-      totalAmount: amount,
-
-      paymentMethod: "stripe",
+      totalAmount,
+      paymentMethod: "razorpay",
       isPaid: false,
       orderStatus: "pending",
       returnedAmount: 0,
-
       address,
     });
 
-    // ✅ UPDATE PRODUCT STOCK
+    createdOrderId = order._id.toString();
+
     await Product.findByIdAndUpdate(productId, {
       $inc: { stock: -quantity },
     });
+    stockReserved = true;
 
-    // ✅ REMOVE ONLY THIS PRODUCT FROM CART
     user.cart = user.cart.filter(
       (item: any) => item.product.toString() !== productId
     );
-
     user.orders = user.orders || [];
     user.orders.push(order._id);
     await user.save();
+    userUpdated = true;
 
-    // ✅ STRIPE SESSION
-    const stripeSession = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      success_url: `${process.env.NEXT_BASE_URL}/order-success`,
-      cancel_url: `${process.env.NEXT_BASE_URL}/order-failed`,
-      line_items: [
-        {
-          price_data: {
-            currency: "inr",
-            product_data: {
-              name: product.title,
-            },
-            unit_amount: Math.round(amount * 100),
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: {
+    const razorpayOrder = await createRazorpayOrder({
+      amount: amountInPaise,
+      currency: "INR",
+      receipt: `order_${order._id.toString()}`,
+      notes: {
         orderId: order._id.toString(),
         productId: product._id.toString(),
       },
     });
 
-    return NextResponse.json({ url: stripeSession.url }, { status: 200 });
+    await Order.findByIdAndUpdate(order._id, {
+      $set: {
+        "paymentDetails.razorpayOrderId": razorpayOrder.id,
+      },
+    });
+
+    return NextResponse.json(
+      {
+        orderId: order._id.toString(),
+        razorpayOrderId: razorpayOrder.id,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        keyId: getRazorpayKeyId(),
+      },
+      { status: 200 }
+    );
   } catch (error: any) {
-    console.error("❌ STRIPE ORDER ERROR:", error);
+    if (createdOrderId) {
+      try {
+        if (stockReserved) {
+          await Product.findOneAndUpdate(
+            { _id: new (await import("mongoose")).default.Types.ObjectId(createdOrderId) },
+            { $inc: { stock: 0 } }
+          );
+        }
+      } catch {}
+
+      try {
+        await Order.findByIdAndDelete(createdOrderId);
+      } catch {}
+
+      if (stockReserved && userUpdated) {
+        try {
+          const failedOrder = await Order.findById(createdOrderId);
+          const productId = failedOrder?.products?.[0]?.product?.toString();
+          const quantity = failedOrder?.products?.[0]?.quantity;
+
+          if (productId && quantity) {
+            await Product.findByIdAndUpdate(productId, {
+              $inc: { stock: quantity },
+            });
+
+            await User.findByIdAndUpdate(
+              failedOrder.buyer,
+              {
+                $pull: { orders: failedOrder._id },
+                $push: { cart: { product: productId, quantity } },
+              }
+            );
+          }
+        } catch {}
+      }
+    }
+
+    console.error("❌ RAZORPAY ORDER ERROR:", error);
+
     return NextResponse.json(
       { message: error.message || "Internal Server Error" },
       { status: 500 }
