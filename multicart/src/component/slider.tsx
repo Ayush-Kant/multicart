@@ -47,7 +47,7 @@ export default function Slider() {
  
 
   return (
-    <div className="relative w-full min-h-[90vh] mt-0 overflow-hidden bg-black text-white md:mt-[60px] pt-0 top-0">
+    <div className="relative w-full min-h-[90vh] mt-0 overflow-hidden bg-black text-white pt-0 top-0">
 
       <AnimatePresence mode="wait">
         <motion.div
