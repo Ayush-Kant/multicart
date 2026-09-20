@@ -54,12 +54,20 @@ export default function VendorOrdersPage() {
     try {
       setLoadingId(orderId);
       await axios.post("/api/order/update-status", { orderId, status });
+
       dispatch(
         setAllOrderData(
           allOrderData.map((o: any) =>
-            o._id === orderId ? { ...o, orderStatus: status } : o
+            o._id === orderId
+              ? { ...o, orderStatus: status }
+              : o
           )
         )
+      );
+    } catch (error: any) {
+      alert(
+        error?.response?.data?.message ||
+          "Unable to update the order status."
       );
     } finally {
       setLoadingId(null);
@@ -67,23 +75,46 @@ export default function VendorOrdersPage() {
   };
 
   const verifyAndDeliver = async () => {
+    if (!otpModal) return;
+
     try {
       setLoadingId(otpModal._id);
-      await axios.post("/api/order/verify-delivery-otp", {
-        orderId: otpModal._id,
-        otp: otpInput,
-      });
+
+      const res = await axios.post(
+        "/api/order/verify-delivery-otp",
+        {
+          orderId: otpModal._id,
+          otp: otpInput,
+        }
+      );
+
       dispatch(
         setAllOrderData(
           allOrderData.map((o: any) =>
             o._id === otpModal._id
-              ? { ...o, orderStatus: "delivered" }
+              ? {
+                  ...o,
+                  orderStatus: "delivered",
+                  isPaid: true,
+                  payoutId:
+                    res.data.payoutId || o.payoutId,
+                  payoutStatus:
+                    res.data.payoutStatus ||
+                    o.payoutStatus ||
+                    "pending",
+                }
               : o
           )
         )
       );
+
       setOtpModal(null);
       setOtpInput("");
+    } catch (error: any) {
+      alert(
+        error?.response?.data?.message ||
+          "Unable to verify the delivery OTP."
+      );
     } finally {
       setLoadingId(null);
     }
@@ -117,6 +148,7 @@ export default function VendorOrdersPage() {
               <th className="p-4">Products</th>
               <th className="p-4">Payment</th>
               <th className="p-4">Status</th>
+              <th className="p-4">Settlement</th>
               <th className="p-4 text-center">Update</th>
             </tr>
           </thead>
@@ -144,6 +176,24 @@ export default function VendorOrdersPage() {
                   </div>
                 </td>
                 <td className="p-4 capitalize">{order.orderStatus}</td>
+                <td className="p-4">
+                  <div
+                    className={
+                      order.payoutStatus === "paid"
+                        ? "text-green-400"
+                        : order.payoutStatus === "reversed"
+                        ? "text-orange-400"
+                        : "text-yellow-400"
+                    }
+                  >
+                    <div className="capitalize">
+                      {order.payoutStatus || "pending"}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      ₹ {order.vendorAmount || 0}
+                    </div>
+                  </div>
+                </td>
                 <td className="p-4 text-center">
                   {order.orderStatus === "cancelled" && (
                     <span className="text-red-400 font-semibold capitalize">
@@ -170,11 +220,21 @@ export default function VendorOrdersPage() {
                         value={order.orderStatus}
                         onChange={async (e) => {
                           if (e.target.value === "delivered") {
-                            await axios.post("/api/order/update-status", {
-                              orderId: order._id,
-                              status: "delivered",
-                            });
-                            setOtpModal(order);
+                            try {
+                              await axios.post(
+                                "/api/order/update-status",
+                                {
+                                  orderId: order._id,
+                                  status: "delivered",
+                                }
+                              );
+                              setOtpModal(order);
+                            } catch (error: any) {
+                              alert(
+                                error?.response?.data?.message ||
+                                  "Unable to start delivery verification."
+                              );
+                            }
                           } else {
                             updateStatus(order._id, e.target.value);
                           }
@@ -231,6 +291,24 @@ export default function VendorOrdersPage() {
               <span className="capitalize">{order.orderStatus}</span>
             </div>
 
+            <div className="mt-3 text-sm">
+              <b>Settlement:</b>{" "}
+              <span
+                className={
+                  order.payoutStatus === "paid"
+                    ? "text-green-400 capitalize"
+                    : order.payoutStatus === "reversed"
+                    ? "text-orange-400 capitalize"
+                    : "text-yellow-400 capitalize"
+                }
+              >
+                {order.payoutStatus || "pending"}
+              </span>
+              <span className="text-gray-400">
+                {" "}· ₹{order.vendorAmount || 0}
+              </span>
+            </div>
+
             {order.orderStatus === "cancelled" && (
               <div className="mt-3 text-sm font-semibold text-red-400">
                 Status: Cancelled
@@ -256,11 +334,21 @@ export default function VendorOrdersPage() {
                   value={order.orderStatus}
                   onChange={async (e) => {
                     if (e.target.value === "delivered") {
-                      await axios.post("/api/order/update-status", {
-                        orderId: order._id,
-                        status: "delivered",
-                      });
-                      setOtpModal(order);
+                      try {
+                        await axios.post(
+                          "/api/order/update-status",
+                          {
+                            orderId: order._id,
+                            status: "delivered",
+                          }
+                        );
+                        setOtpModal(order);
+                      } catch (error: any) {
+                        alert(
+                          error?.response?.data?.message ||
+                            "Unable to start delivery verification."
+                        );
+                      }
                     } else {
                       updateStatus(order._id, e.target.value);
                     }
