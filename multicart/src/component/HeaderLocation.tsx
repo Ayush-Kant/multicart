@@ -23,6 +23,8 @@ import {
 
 type HeaderLocationProps = {
   userId?: string;
+  defaultRecipientName?: string;
+  defaultPhone?: string;
   mobile?: boolean;
 };
 
@@ -46,6 +48,8 @@ const labelIcon = (label: AddressLabel) =>
 
 export default function HeaderLocation({
   userId,
+  defaultRecipientName = "",
+  defaultPhone = "",
   mobile = false,
 }: HeaderLocationProps) {
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
@@ -133,6 +137,7 @@ export default function HeaderLocation({
 
   const selectAddress = async (address: SavedAddress) => {
     setSelectedAddress(address);
+    setOpen(false);
     setError("");
     setMessage("");
 
@@ -165,8 +170,8 @@ export default function HeaderLocation({
     setEditingId(null);
     setForm({
       ...emptyForm,
-      recipientName: "",
-      phone: "",
+      recipientName: defaultRecipientName,
+      phone: defaultPhone,
       country: "India",
       source: "manual",
     });
@@ -326,7 +331,7 @@ export default function HeaderLocation({
     try {
       const payload = {
         ...cleaned,
-        isDefault: addresses.length === 0,
+        isDefault: addresses.length === 0 || !editingId,
       };
 
       const response = editingId
