@@ -7,7 +7,6 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { setAllOrderData } from "@/redux/orderSlice";
 import { motion } from "framer-motion";
 import { FiTruck } from "react-icons/fi";
-import HomeButton from "@/component/HomeButton";
 
 export default function OrdersPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -209,7 +208,6 @@ export default function OrdersPage() {
 
           <div className="flex items-center gap-3">
             <div className="text-sm text-gray-300">{userOrders.length} orders</div>
-            <HomeButton />
           </div>
         </div>
 
