@@ -46,16 +46,23 @@ export async function POST(req: NextRequest) {
     }
 
     // ✅ UPDATE LOGIC (SAME AS VENDOR)
+    if (!["approved", "rejected"].includes(status)) {
+      return NextResponse.json(
+        { message: "Status must be approved or rejected." },
+        { status: 400 }
+      );
+    }
+
     if (status === "approved") {
       product.verificationStatus = "approved";
-               
+      product.isActive = true;
       product.approvedAt = new Date();
       product.rejectedReason = undefined;
     }
 
     if (status === "rejected") {
       product.verificationStatus = "rejected";
-                  
+      product.isActive = false;
       product.rejectedReason =
         rejectedReason || "Rejected by Admin";
     }
