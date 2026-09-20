@@ -10,6 +10,7 @@ import axios from "axios";
 import { ClipLoader } from "react-spinners";
 import { setUserData } from "@/redux/userSlice";
 import getCurrentUser from "@/hooks/getCurrentUser";
+import AddressBook from "@/component/AddressBook";
 
 
 export default function ProfilePage() {
@@ -167,6 +168,12 @@ export default function ProfilePage() {
             </>
           )}
         </div>
+
+        {user.role === "user" && (
+          <div className="mt-8">
+            <AddressBook />
+          </div>
+        )}
 
         {/* ✅ ACTION BUTTONS */}
         <div className="grid grid-cols-1 gap-4 mt-8">
