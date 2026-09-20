@@ -29,6 +29,7 @@ export interface IOrder extends Document {
   payoutDate?: Date;
 
   paymentMethod: "cod" | "razorpay";
+  checkoutGroupId?: string;
   isPaid: boolean;
 
   orderStatus:
@@ -163,6 +164,11 @@ const OrderSchema = new Schema<IOrder>(
       type: String,
       enum: ["cod", "razorpay"],
       required: true,
+    },
+
+    checkoutGroupId: {
+      type: String,
+      index: true,
     },
 
     isPaid: {
