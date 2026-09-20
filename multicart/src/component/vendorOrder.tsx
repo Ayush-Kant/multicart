@@ -161,6 +161,9 @@ export default function VendorOrdersPage() {
                   <div className="text-xs text-gray-400">
                     {order.address?.phone}
                   </div>
+                  <div className="text-xs text-gray-500 mt-1 max-w-[240px]">
+                    {order.address?.address}
+                  </div>
                 </td>
                 <td className="p-4">
                   {order.products.map((p: any, i: number) => (
@@ -283,6 +286,9 @@ export default function VendorOrdersPage() {
             </p>
             <p className="text-xs text-gray-400">
               {order.address?.phone}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {order.address?.address}
             </p>
 
             <div className="mt-2 text-sm">
