@@ -50,6 +50,29 @@ export interface IUser {
     quantity: number;
   }[];
 
+  addresses?: {
+    _id?: mongoose.Types.ObjectId;
+    label: "home" | "work" | "other";
+    recipientName: string;
+    phone: string;
+    buildingNumber: string;
+    street: string;
+    area?: string;
+    landmark?: string;
+    city: string;
+    state: string;
+    pincode: string;
+    country: string;
+    addressLine: string;
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+    source: "manual" | "current_location";
+    isDefault: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+  }[];
+
   chats?: {
     with: mongoose.Types.ObjectId;
     messages: {
@@ -138,6 +161,37 @@ const userSchema = new mongoose.Schema<IUser>(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Order",
+      },
+    ],
+
+    /* ---------------- SAVED ADDRESSES ---------------- */
+    addresses: [
+      {
+        label: {
+          type: String,
+          enum: ["home", "work", "other"],
+          default: "home",
+        },
+        recipientName: { type: String },
+        phone: { type: String },
+        buildingNumber: { type: String },
+        street: { type: String },
+        area: { type: String },
+        landmark: { type: String },
+        city: { type: String },
+        state: { type: String },
+        pincode: { type: String },
+        country: { type: String, default: "India" },
+        addressLine: { type: String },
+        latitude: { type: Number },
+        longitude: { type: Number },
+        accuracy: { type: Number },
+        source: {
+          type: String,
+          enum: ["manual", "current_location"],
+          default: "manual",
+        },
+        isDefault: { type: Boolean, default: false },
       },
     ],
 
