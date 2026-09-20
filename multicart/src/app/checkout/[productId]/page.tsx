@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "axios";
 import { motion } from "framer-motion";
@@ -28,6 +28,7 @@ export default function CheckoutPage() {
   const [selectedAddress, setSelectedAddress] =
     useState<SavedAddress | null>(null);
   const [submitError, setSubmitError] = useState("");
+  const paymentCompleted = useRef(false);
 
   const [paymentMode, setPaymentMode] =
     useState<"cod" | "razorpay">("cod");
@@ -126,6 +127,23 @@ export default function CheckoutPage() {
         }
       );
 
+      paymentCompleted.current = false;
+
+      const cancelPendingOrder = async () => {
+        if (paymentCompleted.current) return;
+
+        try {
+          await axios.post("/api/order/cancel", {
+            orderId: response.data.orderId,
+          });
+        } catch (cancelError) {
+          console.error(
+            "Unable to rollback failed online checkout:",
+            cancelError
+          );
+        }
+      };
+
       const options = {
         key: response.data.keyId,
         amount: response.data.amount,
@@ -159,6 +177,8 @@ export default function CheckoutPage() {
               }
             );
 
+            paymentCompleted.current = true;
+
             router.replace(
               `/order-success?orderId=${response.data.orderId}`
             );
@@ -175,10 +195,12 @@ export default function CheckoutPage() {
 
       razorpay.on(
         "payment.failed",
-        (paymentFailure: any) => {
+        async (paymentFailure: any) => {
+          await cancelPendingOrder();
+
           setSubmitError(
             paymentFailure?.error?.description ||
-              "Payment failed. Please try again."
+              "Payment failed. Your cart item has been kept. Please try again."
           );
         }
       );
