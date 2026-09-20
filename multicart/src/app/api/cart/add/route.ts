@@ -36,8 +36,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
 
-    if (!product.isActive || product.verificationStatus !== "approved") {
-      return NextResponse.json({ message: "Product not available" }, { status: 400 });
+    if (product.verificationStatus !== "approved") {
+      return NextResponse.json(
+        {
+          message:
+            `Product cannot be added because it is not approved. Current status: ${product.verificationStatus || "pending"}.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+     * Existing products created before the approval flow can have
+     * isActive=false even after an admin has approved them. Approval is the
+     * actual marketplace availability gate in this application, so repair
+     * that legacy state here instead of rejecting a valid approved product.
+     */
+    if (product.isActive !== true) {
+      product.isActive = true;
+      await product.save();
     }
 
     // ✅ ✅ FIXED EXISTING ITEM CHECK (NO TS ERROR)
