@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
   let rollbackProductId: string | null = null;
   let rollbackQuantity = 0;
   let rollbackBuyerId: string | null = null;
+  let razorpayOrderId: string | null = null;
 
   try {
     await connectDb();
@@ -192,6 +193,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    razorpayOrderId = razorpayOrder.id;
+
     await Order.findByIdAndUpdate(order._id, {
       $set: {
         "paymentDetails.razorpayOrderId": razorpayOrder.id,
@@ -209,38 +212,67 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
   } catch (error: any) {
-    if (stockReserved && rollbackProductId) {
-      try {
-        await Product.findByIdAndUpdate(rollbackProductId, {
-          $inc: { stock: rollbackQuantity },
-        });
-      } catch {}
-    }
+    /*
+     * Once Razorpay has created an external order, keep the local pending
+     * order instead of deleting it. This prevents an edge-case where an
+     * external payment succeeds after a local rollback removed its order.
+     * The customer can cancel the pending order to release reserved stock.
+     */
+    const externalPaymentOrderExists = Boolean(razorpayOrderId);
 
-    if (userUpdated && rollbackBuyerId && rollbackProductId) {
+    if (externalPaymentOrderExists && createdOrderId) {
       try {
-        await User.findByIdAndUpdate(rollbackBuyerId, {
-          $pull: { orders: createdOrderId },
-          $push: {
-            cart: {
-              product: rollbackProductId,
-              quantity: rollbackQuantity,
-            },
+        await Order.findByIdAndUpdate(createdOrderId, {
+          $set: {
+            ...(razorpayOrderId
+              ? {
+                  "paymentDetails.razorpayOrderId":
+                    razorpayOrderId,
+                }
+              : {}),
           },
         });
       } catch {}
     }
 
-    if (createdOrderId) {
-      try {
-        await Order.findByIdAndDelete(createdOrderId);
-      } catch {}
+    if (!externalPaymentOrderExists) {
+      if (stockReserved && rollbackProductId) {
+        try {
+          await Product.findByIdAndUpdate(rollbackProductId, {
+            $inc: { stock: rollbackQuantity },
+          });
+        } catch {}
+      }
+
+      if (userUpdated && rollbackBuyerId && rollbackProductId) {
+        try {
+          await User.findByIdAndUpdate(rollbackBuyerId, {
+            $pull: { orders: createdOrderId },
+            $push: {
+              cart: {
+                product: rollbackProductId,
+                quantity: rollbackQuantity,
+              },
+            },
+          });
+        } catch {}
+      }
+
+      if (createdOrderId) {
+        try {
+          await Order.findByIdAndDelete(createdOrderId);
+        } catch {}
+      }
     }
 
     console.error("❌ RAZORPAY ORDER ERROR:", error);
 
     return NextResponse.json(
-      { message: error.message || "Unable to start online payment." },
+      {
+        message: externalPaymentOrderExists
+          ? "Online payment setup failed. A pending order was kept so you can cancel it from Orders."
+          : error.message || "Unable to start online payment.",
+      },
       { status: 500 }
     );
   }
