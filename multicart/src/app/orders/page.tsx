@@ -486,7 +486,24 @@ export default function OrdersPage() {
 
               <hr className="my-4 border-white/10" />
 
-              {/* Billing */}
+              {/* Delivery Address */}
+              <h3 className="font-semibold mb-2">Delivery Address</h3>
+              <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-sm text-gray-300 space-y-1">
+                <p className="font-semibold text-white">
+                  {selectedOrder.address?.name}
+                </p>
+                <p>{selectedOrder.address?.phone}</p>
+                <p>{selectedOrder.address?.address}</p>
+                {selectedOrder.address?.pincode && (
+                  <p>
+                    Pincode: {selectedOrder.address.pincode}
+                  </p>
+                )}
+              </div>
+
+              <hr className="my-4 border-white/10" />
+
+              {/* Billing */
               <h3 className="font-semibold mb-2">Invoice</h3>
 
               <div className="text-sm space-y-1">
