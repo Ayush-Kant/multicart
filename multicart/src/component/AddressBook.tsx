@@ -194,7 +194,11 @@ export default function AddressBook({
               location.buildingNumber || current.buildingNumber,
             street: location.street || current.street,
             area: location.area || current.area,
-            city: location.city || current.city,
+            city:
+              location.city ||
+              location.district ||
+              location.cityDistrict ||
+              current.city,
             state: location.state || current.state,
             pincode: location.pincode || current.pincode,
             country: location.country || current.country || "India",
