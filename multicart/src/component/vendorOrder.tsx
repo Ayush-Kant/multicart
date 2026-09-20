@@ -219,6 +219,8 @@ export default function VendorOrdersPage() {
                         disabled={loadingId === order._id}
                         value={order.orderStatus}
                         onChange={async (e) => {
+                          if (e.target.value === "pending") return;
+
                           if (e.target.value === "delivered") {
                             try {
                               await axios.post(
@@ -242,7 +244,12 @@ export default function VendorOrdersPage() {
                         className="bg-white/10 border border-white/20 rounded px-2 py-1"
                       >
                         {statusOptions.map((s) => (
-                          <option key={s} value={s} className="bg-black">
+                          <option
+                            key={s}
+                            value={s}
+                            className="bg-black"
+                            disabled={s === "pending"}
+                          >
                             {s}
                           </option>
                         ))}
@@ -333,6 +340,8 @@ export default function VendorOrdersPage() {
                   disabled={loadingId === order._id}
                   value={order.orderStatus}
                   onChange={async (e) => {
+                    if (e.target.value === "pending") return;
+
                     if (e.target.value === "delivered") {
                       try {
                         await axios.post(
