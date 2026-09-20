@@ -529,7 +529,7 @@ export default function OrdersPage() {
               )}
 
               {selectedOrder.orderStatus === "delivered" &&
-                selectedOrder.deliveryDate && (2
+                selectedOrder.deliveryDate && (
                   <div className="mt-3 text-sm text-green-400">
                     Delivered on:{" "}
                     {new Date(selectedOrder.deliveryDate).toLocaleDateString("en-IN")}
@@ -542,7 +542,7 @@ export default function OrdersPage() {
                 <ul className="list-disc pl-4 space-y-1">
                   <li>
                     Order cancellation feature is <b>not available if payment is done
-                      using Online Payment (Stripe)</b>.
+                      using Online Payment (Razorpay)</b>.
                   </li>
                   <li>You can only <b>return the product</b> after delivery.</li>
                   <li>On return, you will receive only the <b>product amount</b>.</li>
