@@ -15,7 +15,7 @@ export interface IOrder extends Document {
   serviceCharge: number;
   totalAmount: number;
 
-  paymentMethod: "cod" | "stripe";
+  paymentMethod: "cod" | "razorpay";
   isPaid: boolean;
 
   orderStatus:
@@ -26,8 +26,7 @@ export interface IOrder extends Document {
     | "returned"
     | "cancelled";
 
-    cancelledAt?:Date;
-  // ✅ NEW: RETURNED AMOUNT
+  cancelledAt?: Date;
   returnedAmount?: number;
 
   address: {
@@ -39,13 +38,13 @@ export interface IOrder extends Document {
   };
 
   paymentDetails?: {
-    stripePaymentId?: string;
-    stripeSessionId?: string;
+    razorpayOrderId?: string;
+    razorpayPaymentId?: string;
   };
- deliveryDate?:Date;
-  deliveryOtp?:string;
 
-  otpExpiresAt?:Date;
+  deliveryDate?: Date;
+  deliveryOtp?: string;
+  otpExpiresAt?: Date;
 
   createdAt: Date;
   updatedAt: Date;
@@ -105,7 +104,7 @@ const OrderSchema = new Schema<IOrder>(
 
     paymentMethod: {
       type: String,
-      enum: ["cod", "stripe"],
+      enum: ["cod", "razorpay"],
       required: true,
     },
 
@@ -122,16 +121,15 @@ const OrderSchema = new Schema<IOrder>(
         "shipped",
         "delivered",
         "returned",
-        "cancelled"
+        "cancelled",
       ],
       default: "pending",
     },
+
     cancelledAt: {
-  type: Date,
-},
+      type: Date,
+    },
 
-
-    // ✅ NEW: Returned Amount for Refund Accounting
     returnedAmount: {
       type: Number,
       default: 0,
@@ -161,20 +159,21 @@ const OrderSchema = new Schema<IOrder>(
     },
 
     paymentDetails: {
-      stripePaymentId: String,
-      stripeSessionId: String,
+      razorpayOrderId: String,
+      razorpayPaymentId: String,
     },
 
-     deliveryDate: {
-  type: Date,
-},
-    deliveryOtp: {
-  type: String,
-},
-otpExpiresAt: {
-  type: Date,
-},
+    deliveryDate: {
+      type: Date,
+    },
 
+    deliveryOtp: {
+      type: String,
+    },
+
+    otpExpiresAt: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );
