@@ -1,14 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import {
+  FaMinus,
+  FaPlus,
+  FaTrash,
+  FaShoppingBag,
+  FaArrowRight,
+} from "react-icons/fa";
+import { calculateOrderCharges } from "@/lib/marketplace-finance";
 
 export default function UserCartPage() {
   const [cart, setCart] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingProductId, setUpdatingProductId] = useState<string | null>(
+    null
+  );
+  const [removingProductId, setRemovingProductId] = useState<string | null>(
+    null
+  );
   const router = useRouter();
 
   const getCart = async () => {
@@ -27,10 +41,23 @@ export default function UserCartPage() {
   }, []);
 
   const handleRemoveFromCart = async (productId: string) => {
-    setCart((prev) =>
-      prev.filter((i) => i.product._id !== productId)
-    );
-    await axios.post("/api/cart/remove", { productId });
+    try {
+      setRemovingProductId(productId);
+      await axios.post("/api/cart/remove", { productId });
+
+      setCart((prev) =>
+        prev.filter(
+          (item) => String(item.product._id) !== String(productId)
+        )
+      );
+    } catch (error: any) {
+      alert(
+        error?.response?.data?.message ||
+          "Unable to remove this product from your cart."
+      );
+    } finally {
+      setRemovingProductId(null);
+    }
   };
 
   const handleUpdateQuantity = async (
@@ -38,12 +65,55 @@ export default function UserCartPage() {
     quantity: number
   ) => {
     if (quantity < 1) return;
-    await axios.post("/api/cart/update", {
-      productId,
-      quantity,
-    });
-    getCart();
+
+    try {
+      setUpdatingProductId(productId);
+      await axios.post("/api/cart/update", {
+        productId,
+        quantity,
+      });
+
+      setCart((prev) =>
+        prev.map((item) =>
+          String(item.product._id) === String(productId)
+            ? { ...item, quantity }
+            : item
+        )
+      );
+    } catch (error: any) {
+      alert(
+        error?.response?.data?.message ||
+          "Unable to update the product quantity."
+      );
+    } finally {
+      setUpdatingProductId(null);
+    }
   };
+
+  const summary = useMemo(() => {
+    return cart.reduce(
+      (totals, item) => {
+        const charges = calculateOrderCharges({
+          productPrice: Number(item.product?.price || 0),
+          quantity: Number(item.quantity || 0),
+          freeDelivery: Boolean(item.product?.freeDelivery),
+        });
+
+        totals.productsTotal += charges.productsTotal;
+        totals.deliveryCharge += charges.deliveryCharge;
+        totals.serviceCharge += charges.serviceCharge;
+        totals.totalAmount += charges.totalAmount;
+
+        return totals;
+      },
+      {
+        productsTotal: 0,
+        deliveryCharge: 0,
+        serviceCharge: 0,
+        totalAmount: 0,
+      }
+    );
+  }, [cart]);
 
 
   if (loading) {
