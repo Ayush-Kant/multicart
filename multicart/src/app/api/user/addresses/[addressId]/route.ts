@@ -124,12 +124,33 @@ export async function PATCH(
           : Boolean(body.isDefault),
     });
 
+    user.markModified("addresses");
     await user.save();
+
+    const persistedUser = await User.findById(session.user.id)
+      .select("addresses")
+      .lean();
+
+    const persistedAddress =
+      persistedUser?.addresses?.find(
+        (item: any) =>
+          String(item._id) === String(addressId)
+      );
+
+    if (!persistedAddress) {
+      return NextResponse.json(
+        {
+          message:
+            "The address update could not be persisted. Please try again.",
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       {
         message: "Address updated successfully.",
-        address,
+        address: persistedAddress,
       },
       { status: 200 }
     );
@@ -192,12 +213,17 @@ export async function DELETE(
       user.addresses[0].isDefault = true;
     }
 
+    user.markModified("addresses");
     await user.save();
+
+    const persistedUser = await User.findById(session.user.id)
+      .select("addresses")
+      .lean();
 
     return NextResponse.json(
       {
         message: "Address deleted successfully.",
-        addresses: user.addresses,
+        addresses: persistedUser?.addresses || [],
       },
       { status: 200 }
     );
