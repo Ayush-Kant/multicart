@@ -145,6 +145,7 @@ export async function POST(req: NextRequest) {
       orderStatus: "pending",
       returnedAmount: 0,
       platformFee: split.platformFee,
+      platformFeePercent: split.platformFeePercent,
       vendorAmount: split.vendorAmount,
       payoutStatus: "pending",
       address: normalizedAddress,
