@@ -5,11 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "axios";
 import { motion } from "framer-motion";
-import {
-  normalizeDeliveryAddress,
-  validateDeliveryAddress,
-  DeliveryAddressErrors,
-} from "@/lib/order-validation";
+import { FaMapMarkerAlt, FaCheckCircle } from "react-icons/fa";
+import AddressBook from "@/component/AddressBook";
+import { SavedAddress } from "@/lib/address-validation";
 import { calculateOrderCharges } from "@/lib/marketplace-finance";
 
 export default function CheckoutPage() {
@@ -18,6 +16,7 @@ export default function CheckoutPage() {
 
   const productId = useMemo(() => {
     if (!params?.productId) return null;
+
     return Array.isArray(params.productId)
       ? params.productId[0]
       : params.productId;
@@ -26,16 +25,9 @@ export default function CheckoutPage() {
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
-  const [errors, setErrors] = useState<
-    Partial<DeliveryAddressErrors>
-  >({});
+  const [selectedAddress, setSelectedAddress] =
+    useState<SavedAddress | null>(null);
   const [submitError, setSubmitError] = useState("");
-
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [pincode, setPincode] = useState("");
 
   const [paymentMode, setPaymentMode] =
     useState<"cod" | "razorpay">("cod");
@@ -91,60 +83,14 @@ export default function CheckoutPage() {
 
   const codDisabled = !item.product.payOnDelivery;
 
-  const fieldClass = (field: keyof DeliveryAddressErrors) =>
-    `w-full p-3 rounded-xl bg-black/60 border text-white placeholder-gray-400
-    focus:outline-none focus:ring-2 focus:ring-blue-500
-    hover:border-white/40 transition ${
-      errors[field]
-        ? "border-red-500/70"
-        : "border-white/20"
-    }`;
-
-  const updateField = (
-    field: keyof DeliveryAddressErrors,
-    value: string
-  ) => {
-    const setters: Record<
-      keyof DeliveryAddressErrors,
-      (value: string) => void
-    > = {
-      name: setName,
-      phone: setPhone,
-      address: setAddress,
-      city: setCity,
-      pincode: setPincode,
-    };
-
-    setters[field](value);
-    setErrors((current) => ({
-      ...current,
-      [field]: "",
-    }));
-    setSubmitError("");
-  };
-
   const handlePlaceOrder = async () => {
-    const normalizedAddress = normalizeDeliveryAddress({
-      name,
-      phone,
-      address,
-      city,
-      pincode,
-    });
-
-    const addressErrors = validateDeliveryAddress(
-      normalizedAddress
-    );
-
-    if (Object.keys(addressErrors).length > 0) {
-      setErrors(addressErrors);
+    if (!selectedAddress?._id) {
       setSubmitError(
-        "Please correct the highlighted delivery address fields."
+        "Please select a saved delivery address before placing the order."
       );
       return;
     }
 
-    setErrors({});
     setSubmitError("");
 
     try {
@@ -154,7 +100,7 @@ export default function CheckoutPage() {
           {
             productId,
             quantity: item.quantity,
-            address: normalizedAddress,
+            addressId: String(selectedAddress._id),
           }
         );
 
@@ -176,7 +122,7 @@ export default function CheckoutPage() {
         {
           productId,
           quantity: item.quantity,
-          address: normalizedAddress,
+          addressId: String(selectedAddress._id),
         }
       );
 
@@ -188,8 +134,8 @@ export default function CheckoutPage() {
         description: item.product.title,
         order_id: response.data.razorpayOrderId,
         prefill: {
-          name,
-          contact: phone,
+          name: selectedAddress.recipientName,
+          contact: selectedAddress.phone,
         },
         theme: {
           color: "#2563eb",
@@ -239,14 +185,9 @@ export default function CheckoutPage() {
 
       razorpay.open();
     } catch (error: any) {
-      const serverFieldErrors =
-        error?.response?.data?.fieldErrors || {};
-
-      setErrors(serverFieldErrors);
-
       setSubmitError(
         error?.response?.data?.message ||
-          "Checkout failed. Please review your details and try again."
+          "Checkout failed. Please review your selected address and try again."
       );
     }
   };
@@ -259,207 +200,186 @@ export default function CheckoutPage() {
         onLoad={() => setRazorpayLoaded(true)}
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-[#020617] via-black to-[#020617] flex items-center justify-center px-4 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-5xl bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-6 md:p-10 grid md:grid-cols-2 gap-8"
-        >
-          <div className="space-y-5">
-            <h2 className="text-2xl font-bold text-white">
-              Delivery Address
-            </h2>
+      <div className="min-h-screen bg-gradient-to-br from-[#020617] via-black to-[#020617] px-4 py-8 sm:py-10">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <p className="text-blue-400 text-xs uppercase tracking-[0.2em]">
+              Secure Checkout
+            </p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-white mt-1">
+              Delivery & Payment
+            </h1>
+            <p className="text-sm text-gray-400 mt-1">
+              Choose where you want this order delivered, then select your
+              payment method.
+            </p>
+          </motion.div>
 
-            {submitError && (
-              <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                {submitError}
-              </div>
-            )}
+          {submitError && (
+            <div className="mb-6 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              {submitError}
+            </div>
+          )}
 
-            <div>
-              <input
-                className={fieldClass("name")}
-                placeholder="Full Name"
-                value={name}
-                onChange={(e) =>
-                  updateField("name", e.target.value)
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
+            <div className="space-y-6">
+              <AddressBook
+                selectable
+                selectedAddressId={
+                  selectedAddress
+                    ? String(selectedAddress._id)
+                    : null
                 }
+                onSelect={(address) => {
+                  setSelectedAddress(address);
+                  setSubmitError("");
+                }}
               />
-              {errors.name && (
-                <p className="mt-1 text-xs text-red-400">
-                  {errors.name}
-                </p>
+
+              {selectedAddress && (
+                <div className="rounded-2xl border border-blue-500/40 bg-blue-500/10 p-5 text-white">
+                  <div className="flex items-center gap-2 text-blue-300 text-sm font-semibold">
+                    <FaCheckCircle />
+                    Delivery address selected
+                  </div>
+
+                  <div className="mt-3 flex items-start gap-3">
+                    <FaMapMarkerAlt className="text-blue-400 mt-1 shrink-0" />
+                    <div>
+                      <p className="font-semibold">
+                        {selectedAddress.recipientName}
+                      </p>
+                      <p className="text-sm text-gray-300 mt-1">
+                        {selectedAddress.addressLine}
+                      </p>
+                      <p className="text-sm text-gray-400 mt-1">
+                        {selectedAddress.phone} · Pincode{" "}
+                        {selectedAddress.pincode}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 
-            <div>
-              <input
-                inputMode="numeric"
-                maxLength={10}
-                className={fieldClass("phone")}
-                placeholder="10-digit Phone Number"
-                value={phone}
-                onChange={(e) =>
-                  updateField(
-                    "phone",
-                    e.target.value.replace(/\D/g, "")
-                  )
-                }
-              />
-              {errors.phone && (
-                <p className="mt-1 text-xs text-red-400">
-                  {errors.phone}
-                </p>
-              )}
-            </div>
+            <div className="xl:sticky xl:top-24">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-5 sm:p-6"
+              >
+                <h2 className="text-2xl font-bold text-white">
+                  Order Summary
+                </h2>
 
-            <div>
-              <textarea
-                className={fieldClass("address")}
-                rows={3}
-                placeholder="Complete Address"
-                value={address}
-                onChange={(e) =>
-                  updateField("address", e.target.value)
-                }
-              />
-              {errors.address && (
-                <p className="mt-1 text-xs text-red-400">
-                  {errors.address}
-                </p>
-              )}
-            </div>
+                <div className="mt-5 flex items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
+                  <img
+                    src={item.product.image1}
+                    alt={item.product.title}
+                    className="w-20 h-20 object-contain rounded-lg bg-white"
+                  />
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <input
-                  className={fieldClass("city")}
-                  placeholder="City"
-                  value={city}
-                  onChange={(e) =>
-                    updateField("city", e.target.value)
-                  }
-                />
-                {errors.city && (
-                  <p className="mt-1 text-xs text-red-400">
-                    {errors.city}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-100 line-clamp-2">
+                      {item.product.title}
+                    </p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Qty: {item.quantity}
+                    </p>
+                  </div>
+
+                  <p className="font-bold text-green-400 whitespace-nowrap">
+                    ₹ {charges.productsTotal.toLocaleString("en-IN")}
                   </p>
-                )}
-              </div>
+                </div>
 
-              <div>
-                <input
-                  inputMode="numeric"
-                  maxLength={6}
-                  className={fieldClass("pincode")}
-                  placeholder="6-digit Pincode"
-                  value={pincode}
-                  onChange={(e) =>
-                    updateField(
-                      "pincode",
-                      e.target.value.replace(/\D/g, "")
-                    )
-                  }
-                />
-                {errors.pincode && (
-                  <p className="mt-1 text-xs text-red-400">
-                    {errors.pincode}
+                <div className="mt-6 space-y-3 text-sm text-gray-300">
+                  <div className="flex justify-between">
+                    <span>Products</span>
+                    <span>
+                      ₹ {charges.productsTotal.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span>Delivery</span>
+                    <span>
+                      ₹ {charges.deliveryCharge.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span>Service Charge</span>
+                    <span>
+                      ₹ {charges.serviceCharge.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between text-lg font-bold border-t border-white/20 pt-3 text-white">
+                    <span>Total</span>
+                    <span className="text-green-400">
+                      ₹ {charges.totalAmount.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  <p className="font-semibold text-white">
+                    Payment Method
                   </p>
-                )}
-              </div>
-            </div>
-          </div>
 
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">
-              Order Summary
-            </h2>
+                  <div className="flex gap-3">
+                    <button
+                      disabled={codDisabled}
+                      type="button"
+                      onClick={() => setPaymentMode("cod")}
+                      className={`flex-1 py-3 rounded-xl font-semibold transition ${
+                        paymentMode === "cod"
+                          ? "bg-blue-600"
+                          : "bg-white/10"
+                      } ${
+                        codDisabled
+                          ? "opacity-40 cursor-not-allowed"
+                          : ""
+                      }`}
+                    >
+                      Cash on Delivery
+                    </button>
 
-            <div className="flex items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-              <img
-                src={item.product.image1}
-                alt={item.product.title}
-                className="w-20 h-20 object-contain rounded-lg bg-white"
-              />
-
-              <div className="flex-1">
-                <p className="font-semibold text-gray-100">
-                  {item.product.title}
-                </p>
-                <p className="text-sm text-gray-400">
-                  Qty: {item.quantity}
-                </p>
-              </div>
-
-              <p className="font-bold text-green-400">
-                ₹ {charges.productsTotal}
-              </p>
-            </div>
-
-            <div className="space-y-2 text-sm text-gray-300">
-              <div className="flex justify-between">
-                <span>Delivery</span>
-                <span>₹ {charges.deliveryCharge}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span>Service Charge</span>
-                <span>₹ {charges.serviceCharge}</span>
-              </div>
-
-              <div className="flex justify-between text-lg font-bold border-t border-white/20 pt-3 text-white">
-                <span>Total</span>
-                <span className="text-green-400">
-                  ₹ {charges.totalAmount}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <p className="font-semibold text-white">
-                Payment Method
-              </p>
-
-              <div className="flex gap-3">
-                <button
-                  disabled={codDisabled}
-                  onClick={() => setPaymentMode("cod")}
-                  className={`flex-1 py-3 rounded-xl font-semibold transition ${
-                    paymentMode === "cod"
-                      ? "bg-blue-600"
-                      : "bg-white/10"
-                  } ${
-                    codDisabled
-                      ? "opacity-40 cursor-not-allowed"
-                      : ""
-                  }`}
-                >
-                  Cash on Delivery
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMode("razorpay")}
+                      className={`flex-1 py-3 rounded-xl font-semibold transition ${
+                        paymentMode === "razorpay"
+                          ? "bg-blue-600"
+                          : "bg-white/10"
+                      }`}
+                    >
+                      Razorpay
+                    </button>
+                  </div>
+                </div>
 
                 <button
-                  onClick={() => setPaymentMode("razorpay")}
-                  className={`flex-1 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition ${
-                    paymentMode === "razorpay"
-                      ? "bg-blue-600"
-                      : "bg-white/10"
-                  }`}
+                  type="button"
+                  disabled={!selectedAddress || !razorpayLoaded && paymentMode === "razorpay"}
+                  onClick={handlePlaceOrder}
+                  className="w-full mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed py-4 rounded-2xl font-bold text-lg transition"
                 >
-                  Razorpay
+                  {!selectedAddress
+                    ? "Select Delivery Address"
+                    : paymentMode === "cod"
+                    ? "Place Order"
+                    : "Proceed to Secure Payment"}
                 </button>
-              </div>
+              </motion.div>
             </div>
-
-            <button
-              onClick={handlePlaceOrder}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 py-4 rounded-2xl font-bold text-lg transition"
-            >
-              {paymentMode === "cod"
-                ? "Place Order"
-                : "Proceed to Secure Payment"}
-            </button>
           </div>
-        </motion.div>
+        </div>
       </div>
     </>
   );
