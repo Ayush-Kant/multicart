@@ -12,6 +12,7 @@ import getAllProductsData from "@/hooks/getAllProductsData";
 import { FaUserCircle } from "react-icons/fa";
 
 import axios from "axios";
+import HomeButton from "@/component/HomeButton";
 
 
 export default function ProductViewPage() {
@@ -146,6 +147,9 @@ const avgRating =
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 px-4 py-10">
       <div className="max-w-6xl mx-auto">
+        <div className="flex justify-end mb-5">
+          <HomeButton />
+        </div>
 
         {/* ================== ✅ TOP SECTION (LEFT + RIGHT) ================== */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
