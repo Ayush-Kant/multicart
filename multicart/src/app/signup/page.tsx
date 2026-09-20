@@ -14,25 +14,33 @@ export default function SignupPage() {
   const [password,setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false);
   const [loading,setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
   const router = useRouter()
 
   const handleSignup =async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setErrorMessage("")
+
    try {
     const result = await axios.post("/api/auth/register",{name , email , password})
     console.log(result.data)
-    setLoading(false)
     setName("")
     setEmail("")
     setPassword("")
     router.push("/login")
    } catch (error) {
-    console.log(error)
+    if (axios.isAxiosError(error)) {
+      setErrorMessage(
+        error.response?.data?.message ||
+        "Unable to create your account. Please try again."
+      )
+    } else {
+      setErrorMessage("Unable to create your account. Please try again.")
+    }
+   } finally {
     setLoading(false)
    }
-
-    
   };
 
   return (
@@ -85,6 +93,15 @@ export default function SignupPage() {
               {showPassword ? <AiOutlineEyeInvisible size={22} /> : <AiOutlineEye size={22} />}
             </button>
           </div>
+
+          {errorMessage && (
+            <p
+              role="alert"
+              className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-center text-sm text-red-300"
+            >
+              {errorMessage}
+            </p>
+          )}
 
           {/* Submit Button */}
           <button
