@@ -196,7 +196,6 @@ export default function Navbar({ user }: { user?: IUser }) {
                     <ProfileDropdown
                       router={router}
                       close={() => setOpenMenu(false)}
-                      showAddresses={currentUser.role === "user"}
                     />
                   )}
                 </AnimatePresence>
@@ -247,7 +246,6 @@ export default function Navbar({ user }: { user?: IUser }) {
                         <ProfileDropdown
                           router={router}
                           close={() => setOpenMenu(false)}
-                          showAddresses={currentUser.role === "user"}
                         />
                       )}
                     </AnimatePresence>
@@ -322,11 +320,9 @@ const CartBtn = ({ router, count }: any) => (
 const ProfileDropdown = ({
   router,
   close,
-  showAddresses = false,
 }: {
   router: any;
   close: () => void;
-  showAddresses?: boolean;
 }) => (
   <motion.div
     initial={{ opacity: 0, y: -10 }}
