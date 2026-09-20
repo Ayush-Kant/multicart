@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import Order from "@/models/order.model";
 import Product from "@/models/product.model";
 import User from "@/models/user.model";
-import { calculateOrderCharges } from "@/lib/marketplace-finance";
+import { calculateMarketplaceSplit, calculateOrderCharges } from "@/lib/marketplace-finance";
 import { normalizeDeliveryAddress, validateDeliveryAddress } from "@/lib/order-validation";
 
 export async function POST(req: NextRequest) {
@@ -124,6 +124,7 @@ export async function POST(req: NextRequest) {
       quantity,
       freeDelivery: Boolean(product.freeDelivery),
     });
+    const split = calculateMarketplaceSplit(charges.productsTotal);
 
     const order = await Order.create({
       buyer: userId,
@@ -143,8 +144,8 @@ export async function POST(req: NextRequest) {
       isPaid: false,
       orderStatus: "pending",
       returnedAmount: 0,
-      platformFee: 0,
-      vendorAmount: 0,
+      platformFee: split.platformFee,
+      vendorAmount: split.vendorAmount,
       payoutStatus: "pending",
       address: normalizedAddress,
     });
