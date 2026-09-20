@@ -15,6 +15,18 @@ export interface IOrder extends Document {
   serviceCharge: number;
   totalAmount: number;
 
+  /* ---------------- MARKETPLACE SETTLEMENT ---------------- */
+  platformFee: number;
+  vendorAmount: number;
+  payoutStatus:
+    | "pending"
+    | "processing"
+    | "paid"
+    | "failed"
+    | "reversed";
+  payoutId?: Types.ObjectId;
+  payoutDate?: Date;
+
   paymentMethod: "cod" | "razorpay";
   isPaid: boolean;
 
@@ -100,6 +112,33 @@ const OrderSchema = new Schema<IOrder>(
     totalAmount: {
       type: Number,
       required: true,
+    },
+
+    platformFee: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    vendorAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    payoutStatus: {
+      type: String,
+      enum: ["pending", "processing", "paid", "failed", "reversed"],
+      default: "pending",
+    },
+
+    payoutId: {
+      type: Schema.Types.ObjectId,
+      ref: "Payout",
+    },
+
+    payoutDate: {
+      type: Date,
     },
 
     paymentMethod: {
