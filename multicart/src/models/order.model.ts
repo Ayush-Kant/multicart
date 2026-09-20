@@ -267,13 +267,20 @@ const OrderSchema = new Schema<IOrder>(
 const cachedOrderModel = mongoose.models.Order;
 
 if (cachedOrderModel) {
-  const paymentMethodPath = cachedOrderModel.schema.path("paymentMethod");
+  const paymentMethodPath =
+    cachedOrderModel.schema.path("paymentMethod");
+  const checkoutGroupPath =
+    cachedOrderModel.schema.path("checkoutGroupId");
+
   const enumValues =
     paymentMethodPath?.options?.enum ||
     (paymentMethodPath as any)?.enumValues ||
     [];
 
-  if (!Array.from(enumValues).includes("razorpay")) {
+  if (
+    !Array.from(enumValues).includes("razorpay") ||
+    !checkoutGroupPath
+  ) {
     delete mongoose.models.Order;
   }
 }
