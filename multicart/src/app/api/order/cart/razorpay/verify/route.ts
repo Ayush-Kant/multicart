@@ -5,6 +5,7 @@ import connectDb from "@/lib/db";
 import Order from "@/models/order.model";
 import { fetchRazorpayPayment } from "@/lib/razorpay";
 import { settlePaidOrder } from "@/lib/vendor-payout";
+import { finalizePaidOrdersForBuyer } from "@/lib/cart-checkout";
 
 const safeEqual = (expected: string, actual: string) => {
   const expectedBuffer = Buffer.from(expected, "utf8");
@@ -173,6 +174,14 @@ export async function POST(req: NextRequest) {
         payouts.push(payout);
       }
     }
+
+    // Payment is now verified. Only at this point do we remove the
+    // paid quantities from the customer's cart and add the orders
+    // to the customer's order history.
+    await finalizePaidOrdersForBuyer(
+      session.user.id,
+      orders
+    );
 
     return NextResponse.json({
       success: true,
