@@ -137,11 +137,13 @@ export default function HeaderLocation({
 
   const selectAddress = async (address: SavedAddress) => {
     setSelectedAddress(address);
-    setOpen(false);
     setError("");
     setMessage("");
 
-    if (address.isDefault) return;
+    if (address.isDefault) {
+      setOpen(false);
+      return;
+    }
 
     try {
       await axios.patch("/api/user/addresses/" + address._id, {
@@ -158,6 +160,7 @@ export default function HeaderLocation({
         ...address,
         isDefault: true,
       });
+      setOpen(false);
     } catch (requestError: any) {
       setError(
         requestError?.response?.data?.message ||
@@ -178,6 +181,7 @@ export default function HeaderLocation({
     setErrors({});
     setError("");
     setMessage("");
+    setOpen(false);
     setEditorOpen(true);
 
     if (withLocation) {
