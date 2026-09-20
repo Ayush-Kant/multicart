@@ -364,8 +364,9 @@ export default function UserCartPage() {
             </div>
 
             <div className="mt-5 rounded-xl border border-blue-500/15 bg-blue-500/5 p-4 text-xs leading-5 text-gray-400">
-              Each product is checked out individually to keep vendor, stock,
-              payment and order information consistent with the current checkout flow.
+              Use “Checkout All Products” to review the entire cart in one
+              checkout. Products from different vendors are grouped into
+              separate vendor orders automatically.
             </div>
 
             <div className="mt-5 space-y-3">
