@@ -8,7 +8,7 @@ import {
   createRazorpayOrder,
   getRazorpayKeyId,
 } from "@/lib/razorpay";
-import { calculateOrderCharges } from "@/lib/marketplace-finance";
+import { calculateMarketplaceSplit, calculateOrderCharges } from "@/lib/marketplace-finance";
 import { normalizeDeliveryAddress, validateDeliveryAddress } from "@/lib/order-validation";
 
 export async function POST(req: NextRequest) {
@@ -130,6 +130,7 @@ export async function POST(req: NextRequest) {
       quantity,
       freeDelivery: Boolean(product.freeDelivery),
     });
+    const split = calculateMarketplaceSplit(charges.productsTotal);
 
     const amountInPaise = Math.round(charges.totalAmount * 100);
 
@@ -154,8 +155,8 @@ export async function POST(req: NextRequest) {
       deliveryCharge: charges.deliveryCharge,
       serviceCharge: charges.serviceCharge,
       totalAmount: charges.totalAmount,
-      platformFee: 0,
-      vendorAmount: 0,
+      platformFee: split.platformFee,
+      vendorAmount: split.vendorAmount,
       payoutStatus: "pending",
       paymentMethod: "razorpay",
       isPaid: false,
