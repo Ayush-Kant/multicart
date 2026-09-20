@@ -156,6 +156,7 @@ export async function POST(req: NextRequest) {
       serviceCharge: charges.serviceCharge,
       totalAmount: charges.totalAmount,
       platformFee: split.platformFee,
+      platformFeePercent: split.platformFeePercent,
       vendorAmount: split.vendorAmount,
       payoutStatus: "pending",
       paymentMethod: "razorpay",
