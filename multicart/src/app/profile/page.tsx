@@ -14,7 +14,19 @@ import AddressBook from "@/component/AddressBook";
 import AuthGate from "@/component/auth/AuthGate";
 
 
-export default function ProfilePage() {\n  return (\n    <AuthGate\n      callbackUrl="/profile"\n      title="Sign in to manage your profile"\n      description="Profile, delivery addresses, and account settings belong to your MultiCart account."\n    >\n      <ProfileContent />\n    </AuthGate>\n  );\n}\n\nfunction ProfileContent() {
+export default function ProfilePage() {
+  return (
+    <AuthGate
+      callbackUrl="/profile"
+      title="Sign in to manage your profile"
+      description="Profile, delivery addresses, and account settings belong to your MultiCart account."
+    >
+      <ProfileContent />
+    </AuthGate>
+  );
+}
+
+function ProfileContent() {
   const router = useRouter();
   getCurrentUser()
   const user = useSelector((state: RootState) => state.user.userData);
