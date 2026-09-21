@@ -11,9 +11,11 @@ import {
 import { useRouter } from "next/navigation";
 import { IProduct } from "@/models/product.model";
 import axios from "axios";
+import useRequireLogin from "@/hooks/useRequireLogin";
 
 export default function UserProductCard({ product }: { product: IProduct }) {
   const router = useRouter();
+  const { requireLogin } = useRequireLogin();
 
   const images = [
     product.image1,
