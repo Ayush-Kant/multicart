@@ -39,6 +39,10 @@ export default function UserProductCard({ product }: { product: IProduct }) {
  const handleAddToCart = async (e: React.MouseEvent) => {
   e.stopPropagation(); // ✅ card click se bache
 
+  if (!requireLogin(window.location.pathname + window.location.search)) {
+    return;
+  }
+
   try {
     const res = await axios.post("/api/cart/add", {
       productId: product._id,
