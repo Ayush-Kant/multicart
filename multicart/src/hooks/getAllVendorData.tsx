@@ -1,31 +1,34 @@
-'use client'
-import { AppDispatch, RootState } from '@/redux/store'
+"use client";
 
-import { setAllVendorData } from '@/redux/vendorSlice'
-import axios from 'axios'
-import React, { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { AppDispatch, RootState } from "@/redux/store";
+import { setAllVendorData } from "@/redux/vendorSlice";
+import axios from "axios";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 function getAllVendorData() {
-    const dispatch = useDispatch<AppDispatch>()
-    const {userData} = useSelector(
-        (state: RootState) => state.user
-      );
-useEffect(()=>{
-    const fetchAllVendor = async ()=>{
-        try {
-            const result = await axios.get("/api/vendor/all-vendor")
-            dispatch(setAllVendorData(result.data))
-            
-           
-        } catch (error) {
-            console.log(error)
-            dispatch(setAllVendorData([]))
-        }
+  const dispatch = useDispatch<AppDispatch>();
+  const { userData } = useSelector(
+    (state: RootState) => state.user
+  );
 
-    }
-    fetchAllVendor()
-},[userData])
+  useEffect(() => {
+    const fetchAllVendors = async () => {
+      try {
+        const endpoint =
+          userData?.role === "admin" || userData?.role === "vendor"
+            ? "/api/vendor/all-vendor"
+            : "/api/vendor/public-vendor";
+
+        const result = await axios.get(endpoint);
+        dispatch(setAllVendorData(result.data || []));
+      } catch {
+        dispatch(setAllVendorData([]));
+      }
+    };
+
+    fetchAllVendors();
+  }, [userData?.role, dispatch]);
 }
 
-export default getAllVendorData
+export default getAllVendorData;
