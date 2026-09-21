@@ -46,7 +46,19 @@ const labelIcon = (label: AddressLabel) => {
   return <FaMapMarkerAlt size={13} />;
 };
 
-export default function AddressBook(props: AddressBookProps) {\n  return (\n    <AuthGate\n      callbackUrl="/profile"\n      title="Sign in to manage delivery addresses"\n      description="Save multiple addresses and use your location during checkout after you sign in."\n    >\n      <AddressBookContent {...props} />\n    </AuthGate>\n  );\n}\n\nfunction AddressBookContent({
+export default function AddressBook(props: AddressBookProps) {
+  return (
+    <AuthGate
+      callbackUrl="/profile"
+      title="Sign in to manage delivery addresses"
+      description="Save multiple addresses and use your location during checkout after you sign in."
+    >
+      <AddressBookContent {...props} />
+    </AuthGate>
+  );
+}
+
+function AddressBookContent({
   selectable = false,
   selectedAddressId = null,
   onSelect,
