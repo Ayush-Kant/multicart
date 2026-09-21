@@ -5,8 +5,9 @@ import { motion } from "framer-motion";
 import { FaBox, FaCheckCircle } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import AuthGate from "@/component/auth/AuthGate";
 
-export default function OrderSuccessPage() {
+export default function OrderSuccessPage() {\n  return (\n    <AuthGate\n      callbackUrl={typeof window !== "undefined" ? window.location.pathname + window.location.search : "/orders"}\n      title="Sign in to view your order confirmation"\n      description="Your order details are available securely inside your account."\n    >\n      <OrderSuccessContent />\n    </AuthGate>\n  );\n}\n\nfunction OrderSuccessContent() {
   const router = useRouter();
 
   const [orders, setOrders] = useState<any[]>([]);
