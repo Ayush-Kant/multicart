@@ -46,6 +46,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const requestedQuantity = Number(quantity);
+
+    if (!Number.isInteger(requestedQuantity) || requestedQuantity < 1) {
+      return NextResponse.json(
+        { message: "Quantity must be a positive whole number." },
+        { status: 400 }
+      );
+    }
+
+    const currentQuantity =
+      user.cart.find(
+        (item: any) => item.product?.toString() === productId.toString()
+      )?.quantity || 0;
+
+    if (currentQuantity + requestedQuantity > product.stock) {
+      return NextResponse.json(
+        {
+          message: `Only ${product.stock} unit(s) of ${product.title} are available.`,
+        },
+        { status: 409 }
+      );
+    }
+
     /*
      * Existing products created before the approval flow can have
      * isActive=false even after an admin has approved them. Approval is the
@@ -63,11 +86,11 @@ export async function POST(req: NextRequest) {
     );
 
     if (existingItem) {
-      existingItem.quantity += quantity;
+      existingItem.quantity += requestedQuantity;
     } else {
       user.cart.push({
         product: product._id,
-        quantity,
+        quantity: requestedQuantity,
       });
     }
 
