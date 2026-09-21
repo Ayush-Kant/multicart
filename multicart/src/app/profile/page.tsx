@@ -11,9 +11,10 @@ import { ClipLoader } from "react-spinners";
 import { setUserData } from "@/redux/userSlice";
 import getCurrentUser from "@/hooks/getCurrentUser";
 import AddressBook from "@/component/AddressBook";
+import AuthGate from "@/component/auth/AuthGate";
 
 
-export default function ProfilePage() {
+export default function ProfilePage() {\n  return (\n    <AuthGate\n      callbackUrl="/profile"\n      title="Sign in to manage your profile"\n      description="Profile, delivery addresses, and account settings belong to your MultiCart account."\n    >\n      <ProfileContent />\n    </AuthGate>\n  );\n}\n\nfunction ProfileContent() {
   const router = useRouter();
   getCurrentUser()
   const user = useSelector((state: RootState) => state.user.userData);
