@@ -1,14 +1,34 @@
-// /api/user/check-admin/route.ts
+import { auth } from "@/auth";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  await connectDb();
+  try {
+    const session = await auth();
 
-  const admin = await User.findOne({ role: "admin" });
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { message: "Authentication required." },
+        { status: 401 }
+      );
+    }
 
-  return NextResponse.json({
-    exists: !!admin,
-  });
+    await connectDb();
+
+    const admin = await User.findOne({ role: "admin" })
+      .select("_id")
+      .lean();
+
+    return NextResponse.json({
+      exists: !!admin,
+    });
+  } catch (error) {
+    console.error("CHECK ADMIN ERROR:", error);
+
+    return NextResponse.json(
+      { message: "Unable to check admin availability." },
+      { status: 500 }
+    );
+  }
 }
