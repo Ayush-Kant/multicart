@@ -192,6 +192,13 @@ export default function UpdateProduct() {
 
   if (!product) {
     return (
+    <RoleGate
+      allowedRoles="vendor"
+      callbackUrl={`/update-product/${id}`}
+      title="Vendor access required"
+      description="Only the owner vendor can edit marketplace products."
+    >
+
       <div className="min-h-screen flex items-center justify-center text-white">
         Loading product...
       </div>
@@ -424,5 +431,7 @@ export default function UpdateProduct() {
 
       </motion.div>
     </motion.div>
+  );
+    </RoleGate>
   );
 }
