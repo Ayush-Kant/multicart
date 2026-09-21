@@ -15,7 +15,19 @@ import {
 import { calculateOrderCharges } from "@/lib/marketplace-finance";
 import AuthGate from "@/component/auth/AuthGate";
 
-export default function UserCartPage() {\n  return (\n    <AuthGate\n      callbackUrl="/cart"\n      title="Sign in to access your cart"\n      description="Your cart is saved to your MultiCart account so you can continue shopping across devices."\n    >\n      <UserCartContent />\n    </AuthGate>\n  );\n}\n\nfunction UserCartContent() {
+export default function UserCartPage() {
+  return (
+    <AuthGate
+      callbackUrl="/cart"
+      title="Sign in to access your cart"
+      description="Your cart is saved to your MultiCart account so you can continue shopping across devices."
+    >
+      <UserCartContent />
+    </AuthGate>
+  );
+}
+
+function UserCartContent() {
   const [cart, setCart] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingProductId, setUpdatingProductId] = useState<string | null>(
