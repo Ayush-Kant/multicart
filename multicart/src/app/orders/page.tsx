@@ -7,8 +7,9 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { setAllOrderData } from "@/redux/orderSlice";
 import { motion } from "framer-motion";
 import { FiTruck } from "react-icons/fi";
+import AuthGate from "@/component/auth/AuthGate";
 
-export default function OrdersPage() {
+export default function OrdersPage() {\n  return (\n    <AuthGate\n      callbackUrl="/orders"\n      title="Sign in to view your orders"\n      description="Your order history and delivery tracking are available after you sign in."\n    >\n      <OrdersContent />\n    </AuthGate>\n  );\n}\n\nfunction OrdersContent() {
   const dispatch = useDispatch<AppDispatch>();
 
   const { userData } = useSelector((state: RootState) => state.user);
