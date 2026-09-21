@@ -9,7 +9,19 @@ import { motion } from "framer-motion";
 import { FiTruck } from "react-icons/fi";
 import AuthGate from "@/component/auth/AuthGate";
 
-export default function OrdersPage() {\n  return (\n    <AuthGate\n      callbackUrl="/orders"\n      title="Sign in to view your orders"\n      description="Your order history and delivery tracking are available after you sign in."\n    >\n      <OrdersContent />\n    </AuthGate>\n  );\n}\n\nfunction OrdersContent() {
+export default function OrdersPage() {
+  return (
+    <AuthGate
+      callbackUrl="/orders"
+      title="Sign in to view your orders"
+      description="Your order history and delivery tracking are available after you sign in."
+    >
+      <OrdersContent />
+    </AuthGate>
+  );
+}
+
+function OrdersContent() {
   const dispatch = useDispatch<AppDispatch>();
 
   const { userData } = useSelector((state: RootState) => state.user);
