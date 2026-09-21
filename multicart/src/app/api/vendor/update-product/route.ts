@@ -4,6 +4,7 @@ import Product from "@/models/product.model";
 import { auth } from "@/auth";
 import connectDb from "@/lib/db";
 import mongoose from "mongoose";
+import { getRoleAuthContext } from "@/lib/auth-guards";
 
 export async function PUT(req: NextRequest) {
   try {
