@@ -9,7 +9,6 @@ export async function GET() {
     const products = await Product.find({
       isActive: true,
       verificationStatus: "approved",
-      stock: { $gt: 0 },
     })
       .select(
         "title description price stock isStockAvailable image1 image2 image3 image4 category isWearable sizes vendor replacementDays freeDelivery warranty payOnDelivery detailsPoints reviews createdAt updatedAt"
