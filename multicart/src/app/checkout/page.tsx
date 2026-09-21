@@ -9,8 +9,9 @@ import { FaCheckCircle, FaMapMarkerAlt, FaArrowLeft } from "react-icons/fa";
 import AddressBook from "@/component/AddressBook";
 import { SavedAddress } from "@/lib/address-validation";
 import { calculateOrderCharges } from "@/lib/marketplace-finance";
+import AuthGate from "@/component/auth/AuthGate";
 
-export default function CartCheckoutPage() {
+export default function CartCheckoutPage() {\n  return (\n    <AuthGate\n      callbackUrl="/checkout"\n      title="Sign in to checkout"\n      description="You need an account to use saved addresses, place orders, and securely complete payment."\n    >\n      <CartCheckoutContent />\n    </AuthGate>\n  );\n}\n\nfunction CartCheckoutContent() {
   const router = useRouter();
 
   const [cart, setCart] = useState<any[]>([]);
