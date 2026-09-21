@@ -48,6 +48,7 @@ const labelIcon = (label: AddressLabel) => {
 };
 
 export default function AddressBook(props: AddressBookProps) {
+  const pathname = usePathname();
   return (
     <AuthGate
       callbackUrl={pathname || "/profile"}
