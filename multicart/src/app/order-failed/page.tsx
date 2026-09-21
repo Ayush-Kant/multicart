@@ -3,8 +3,9 @@
 import { motion } from "framer-motion";
 import { FaTimesCircle } from "react-icons/fa";
 import { useRouter } from "next/navigation";
+import AuthGate from "@/component/auth/AuthGate";
 
-export default function PaymentFailedPage() {
+export default function PaymentFailedPage() {\n  return (\n    <AuthGate\n      callbackUrl="/order-failed"\n      title="Sign in to continue with your order"\n      description="Your payment attempt is tied to your account and checkout session."\n    >\n      <PaymentFailedContent />\n    </AuthGate>\n  );\n}\n\nfunction PaymentFailedContent() {
   const router = useRouter();
 
   return (
@@ -44,7 +45,7 @@ export default function PaymentFailedPage() {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.96 }}
-          onClick={() => router.push("/order")}
+          onClick={() => router.push("/orders")}
           className="mt-4 w-full py-3 rounded-lg bg-white/20 hover:bg-white/30 text-white font-semibold"
         >
           Go to Order page
