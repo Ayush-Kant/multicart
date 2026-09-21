@@ -9,7 +9,8 @@ export async function POST(req: NextRequest) {
     await connectDb();
 
     const session = await auth();
-    if (!session?.user?.email) {
+
+    if (!session?.user?.id) {
       return NextResponse.json(
         { message: "Unauthorized" },
         { status: 401 }
@@ -17,17 +18,20 @@ export async function POST(req: NextRequest) {
     }
 
     const { productId, quantity } = await req.json();
+    const requestedQuantity = Number(quantity);
 
-    if (!productId || quantity < 1) {
+    if (
+      !productId ||
+      !Number.isInteger(requestedQuantity) ||
+      requestedQuantity < 1
+    ) {
       return NextResponse.json(
-        { message: "Invalid data" },
+        { message: "Quantity must be a positive whole number." },
         { status: 400 }
       );
     }
 
-    const user = await User.findOne({
-      email: session.user.email,
-    });
+    const user = await User.findById(session.user.id);
 
     if (!user || !user.cart) {
       return NextResponse.json(
@@ -37,8 +41,8 @@ export async function POST(req: NextRequest) {
     }
 
     const item = user.cart.find(
-      (i: any) =>
-        i.product.toString() === productId.toString()
+      (cartItem: any) =>
+        cartItem.product.toString() === productId.toString()
     );
 
     if (!item) {
@@ -48,10 +52,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-
-    const product = await Product.findById(
-      productId
-    ).select("title stock");
+    const product = await Product.findById(productId)
+      .select("title stock verificationStatus isActive")
+      .lean();
 
     if (!product) {
       return NextResponse.json(
@@ -60,7 +63,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (quantity > product.stock) {
+    if (product.verificationStatus !== "approved") {
+      return NextResponse.json(
+        { message: "This product is no longer available." },
+        { status: 409 }
+      );
+    }
+
+    if (requestedQuantity > product.stock) {
       return NextResponse.json(
         {
           message: `Only ${product.stock} unit(s) of ${product.title} are available.`,
@@ -69,7 +79,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    item.quantity = quantity;
+    item.quantity = requestedQuantity;
 
     await user.save();
 
@@ -78,7 +88,8 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.log("UPDATE CART ERROR:", error);
+    console.error("UPDATE CART ERROR:", error);
+
     return NextResponse.json(
       { message: "Update failed" },
       { status: 500 }
