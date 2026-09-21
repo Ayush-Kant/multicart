@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { IUser } from "@/models/user.model";
 
-export default function Footer({ user }: { user: IUser }) {
+export default function Footer({ user }: { user?: IUser }) {
   const router = useRouter();
 
 
@@ -44,7 +44,7 @@ export default function Footer({ user }: { user: IUser }) {
         </div>
 
         {/* ✅ QUICK LINKS - ONLY USER */}
-        {isUser && (
+        {(isUser || !user) && (
           <div>
             <h3 className="text-white text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm">
@@ -57,7 +57,7 @@ export default function Footer({ user }: { user: IUser }) {
         )}
 
         {/* ✅ SUPPORT - ONLY USER */}
-        {isUser && (
+        {(isUser || !user) && (
           <div>
             <h3 className="text-white text-lg font-semibold mb-4">Help & Support</h3>
             <ul className="space-y-2 text-sm">
