@@ -444,6 +444,13 @@ const Sidebar = ({
         close={close}
       />
       <SidebarLink
+        Icon={AiOutlineShop}
+        label="Sell on MultiCart"
+        path="/sell"
+        router={router}
+        close={close}
+      />
+      <SidebarLink
         Icon={AiOutlineShoppingCart}
         label="Cart"
         path="/cart"
