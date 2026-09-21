@@ -19,6 +19,7 @@ import {
   SavedAddress,
   normalizeAddressInput,
 } from "@/lib/address-validation";
+import AuthGate from "@/component/auth/AuthGate";
 
 type AddressBookProps = {
   selectable?: boolean;
@@ -45,7 +46,7 @@ const labelIcon = (label: AddressLabel) => {
   return <FaMapMarkerAlt size={13} />;
 };
 
-export default function AddressBook({
+export default function AddressBook(props: AddressBookProps) {\n  return (\n    <AuthGate\n      callbackUrl="/profile"\n      title="Sign in to manage delivery addresses"\n      description="Save multiple addresses and use your location during checkout after you sign in."\n    >\n      <AddressBookContent {...props} />\n    </AuthGate>\n  );\n}\n\nfunction AddressBookContent({
   selectable = false,
   selectedAddressId = null,
   onSelect,
