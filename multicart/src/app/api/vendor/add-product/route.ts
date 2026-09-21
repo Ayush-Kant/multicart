@@ -4,6 +4,7 @@ import Product from "@/models/product.model";
 import User from "@/models/user.model";
 import { auth } from "@/auth";
 import connectDb from "@/lib/db";
+import { getRoleAuthContext } from "@/lib/auth-guards";
 
 export async function POST(req: NextRequest) {
   try {
