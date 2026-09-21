@@ -9,8 +9,9 @@ import { FaMapMarkerAlt, FaCheckCircle } from "react-icons/fa";
 import AddressBook from "@/component/AddressBook";
 import { SavedAddress } from "@/lib/address-validation";
 import { calculateOrderCharges } from "@/lib/marketplace-finance";
+import AuthGate from "@/component/auth/AuthGate";
 
-export default function CheckoutPage() {
+export default function CheckoutPage() {\n  const paramsForCallback = useParams();\n  const callbackProductId = Array.isArray(paramsForCallback?.productId)\n    ? paramsForCallback.productId[0]\n    : paramsForCallback?.productId;\n\n  return (\n    <AuthGate\n      callbackUrl={callbackProductId ? `/checkout/${callbackProductId}` : "/cart"}\n      title="Sign in to checkout"\n      description="Sign in to confirm your address and place this order securely."\n    >\n      <CheckoutContent />\n    </AuthGate>\n  );\n}\n\nfunction CheckoutContent() {
   const router = useRouter();
   const params = useParams();
 
