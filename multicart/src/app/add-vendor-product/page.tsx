@@ -346,7 +346,6 @@ export default function AddProduct() {
 
       </motion.div>
     </motion.div>
-  );
     </RoleGate>
   );
 }
