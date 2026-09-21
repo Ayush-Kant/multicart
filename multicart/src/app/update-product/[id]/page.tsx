@@ -9,6 +9,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { IProduct } from "@/models/product.model";
+import RoleGate from "@/component/auth/RoleGate";
 
 const categories = [
   "Fashion & Lifestyle",
