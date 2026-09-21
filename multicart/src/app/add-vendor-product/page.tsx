@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FiUpload } from "react-icons/fi";
 import axios from "axios";
+import RoleGate from "@/component/auth/RoleGate";
 
 const categories = [
   "Fashion & Lifestyle",
