@@ -49,21 +49,15 @@ function SupportContent() {
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  if (!myId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-white">
-        Loading support...
-      </div>
-    );
-  }
-
   /* ================= ACTIVE USERS ================= */
   useEffect(() => {
+    if (!myId) return;
+
     axios
       .get("/api/chat/active-users")
       .then((res) => setUsers(res.data || []))
       .catch(console.log);
-  }, []);
+  }, [myId]);
 
   /* ================= FETCH MESSAGES ================= */
   useEffect(() => {
@@ -79,6 +73,14 @@ function SupportContent() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  if (!myId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white">
+        Loading support...
+      </div>
+    );
+  }
 
   /* ================= FETCH AI SUGGESTIONS (BUTTON) ================= */
   const fetchSuggestions = async () => {
