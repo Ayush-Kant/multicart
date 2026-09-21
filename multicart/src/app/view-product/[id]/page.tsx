@@ -20,7 +20,7 @@ export default function ProductViewPage() {
   const id = params.id;
   getAllProductsData()
   const router = useRouter()
-  const { requireLogin } = useRequireLogin()
+  const { isAuthenticated, requireLogin } = useRequireLogin()
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewImage, setReviewImage] = useState<File | null>(null);
@@ -88,6 +88,10 @@ const avgRating =
   const handleAddToCart = async () => {
     if (!product?._id) return;
 
+    if (!requireLogin(`/view-product/${String(product._id)}`)) {
+      return;
+    }
+
     try {
 
 
@@ -110,6 +114,10 @@ const avgRating =
   };
 
   const submitReview = async () => {
+  if (!requireLogin(`/view-product/${String(product?._id || id)}`)) {
+    return;
+  }
+
   if (!reviewRating || !reviewComment) {
     alert("Rating and comment are required");
     return;
@@ -322,64 +330,84 @@ const avgRating =
           Customer Reviews
         </h2>
 
-        {/* ⭐ ADD REVIEW FORM */}
+        {/* REVIEW ACTION */}
         <div className="mb-8">
-          <p className="text-white font-semibold mb-2">Add Your Review</p>
+          {isAuthenticated ? (
+            <>
+              <p className="text-white font-semibold mb-2">Add Your Review</p>
 
-          {/* ⭐ Rating */}
-          <div className="flex gap-2 mb-3 text-yellow-400">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <span
-                key={i}
-                onClick={() => setReviewRating(i)}
-                className="cursor-pointer"
+              <div className="flex gap-2 mb-3 text-yellow-400">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setReviewRating(i)}
+                    className="cursor-pointer"
+                    aria-label={`Rate ${i} out of 5`}
+                  >
+                    {i <= reviewRating ? <FaStar /> : <FaRegStar />}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Write your review..."
+                className="w-full p-3 rounded bg-black text-white border border-white/20 mb-3"
+              />
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setReviewImage(file);
+                    setPreview(URL.createObjectURL(file));
+                  }
+                }}
+                className="mb-3 text-white"
+              />
+
+              {preview && (
+                <Image
+                  src={preview}
+                  alt="Review preview"
+                  width={100}
+                  height={100}
+                  className="rounded mb-3"
+                />
+              )}
+
+              <button
+                type="button"
+                onClick={submitReview}
+                disabled={loading}
+                className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded font-semibold disabled:opacity-50"
               >
-                {i <= reviewRating ? <FaStar /> : <FaRegStar />}
-              </span>
-            ))}
-          </div>
-
-          {/* 💬 Comment */}
-          <textarea
-            value={reviewComment}
-            onChange={(e) => setReviewComment(e.target.value)}
-            placeholder="Write your review..."
-            className="w-full p-3 rounded bg-black text-white border border-white/20 mb-3"
-          />
-
-          {/* 🖼️ Image Upload */}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                setReviewImage(file);
-                setPreview(URL.createObjectURL(file));
-              }
-            }}
-            className="mb-3 text-white"
-          />
-
-          {/* 🖼️ Preview */}
-          {preview && (
-            <Image
-              src={preview}
-              alt="Preview"
-              width={100}
-              height={100}
-              className="rounded mb-3"
-            />
+                {loading ? "Submitting..." : "Submit Review"}
+              </button>
+            </>
+          ) : (
+            <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-6">
+              <p className="text-white font-semibold">
+                Sign in to write a review
+              </p>
+              <p className="mt-1 text-sm text-gray-400">
+                Your review will be linked to your MultiCart account.
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  requireLogin(`/view-product/${String(product?._id || id)}`)
+                }
+                className="mt-4 rounded-xl bg-blue-600 px-5 py-2.5 font-semibold hover:bg-blue-700"
+              >
+                Sign in to review
+              </button>
+            </div>
           )}
-
-          {/* 🚀 Submit */}
-          <button
-            onClick={submitReview}
-            disabled={loading}
-            className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded font-semibold"
-          >
-            {loading ? "Submitting..." : "Submit Review"}
-          </button>
         </div>
 
         {/* 📄 EXISTING REVIEWS */}
