@@ -11,7 +11,24 @@ import { SavedAddress } from "@/lib/address-validation";
 import { calculateOrderCharges } from "@/lib/marketplace-finance";
 import AuthGate from "@/component/auth/AuthGate";
 
-export default function CheckoutPage() {\n  const paramsForCallback = useParams();\n  const callbackProductId = Array.isArray(paramsForCallback?.productId)\n    ? paramsForCallback.productId[0]\n    : paramsForCallback?.productId;\n\n  return (\n    <AuthGate\n      callbackUrl={callbackProductId ? `/checkout/${callbackProductId}` : "/cart"}\n      title="Sign in to checkout"\n      description="Sign in to confirm your address and place this order securely."\n    >\n      <CheckoutContent />\n    </AuthGate>\n  );\n}\n\nfunction CheckoutContent() {
+export default function CheckoutPage() {
+  const paramsForCallback = useParams();
+  const callbackProductId = Array.isArray(paramsForCallback?.productId)
+    ? paramsForCallback.productId[0]
+    : paramsForCallback?.productId;
+
+  return (
+    <AuthGate
+      callbackUrl={callbackProductId ? `/checkout/${callbackProductId}` : "/cart"}
+      title="Sign in to checkout"
+      description="Sign in to confirm your address and place this order securely."
+    >
+      <CheckoutContent />
+    </AuthGate>
+  );
+}
+
+function CheckoutContent() {
   const router = useRouter();
   const params = useParams();
 
