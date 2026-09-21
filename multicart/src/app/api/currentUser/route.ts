@@ -7,7 +7,7 @@ export async function GET(req:NextRequest) {
     try {
         const session = await auth()
         if(!session || !session.user){
-            return NextResponse.json({message:"User is not authenticated"},{status:400})
+            return NextResponse.json({message:"User is not authenticated"},{status:401})
         }
         const user = await User.findOne({email:session.user.email}).select("-password").populate("cart.product")
         if(!user){
