@@ -126,6 +126,7 @@ export default function Navbar({ user }: { user?: IUserLike }) {
             <NavItem label="Home" path="/" router={router} />
             <NavItem label="Categories" path="/category" router={router} />
             <NavItem label="Shop" path="/shop" router={router} />
+            <NavItem label="Sell" path="/sell" router={router} />
 
             {currentUser?.role === "user" && (
               <>
