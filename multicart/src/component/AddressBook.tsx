@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -49,7 +50,7 @@ const labelIcon = (label: AddressLabel) => {
 export default function AddressBook(props: AddressBookProps) {
   return (
     <AuthGate
-      callbackUrl="/profile"
+      callbackUrl={pathname || "/profile"}
       title="Sign in to manage delivery addresses"
       description="Save multiple addresses and use your location during checkout after you sign in."
     >
