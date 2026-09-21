@@ -6,6 +6,7 @@ import Image from "next/image";
 import { FaPaperPlane, FaUserCircle } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
+import AuthGate from "@/component/auth/AuthGate";
 
 interface ChatUser {
   _id: string;
@@ -21,7 +22,7 @@ interface Message {
   createdAt: string;
 }
 
-export default function SupportPage() {
+export default function SupportPage() {\n  return (\n    <AuthGate\n      callbackUrl="/support"\n      title="Sign in to contact support"\n      description="Support conversations are tied to your account and order history."\n    >\n      <SupportContent />\n    </AuthGate>\n  );\n}\n\nfunction SupportContent() {
   const { userData } = useSelector((state: RootState) => state.user);
   const myId = String(userData?._id);
 
