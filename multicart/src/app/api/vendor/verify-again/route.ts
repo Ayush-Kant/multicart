@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { getRoleAuthContext } from "@/lib/auth-guards";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
 import { NextRequest, NextResponse } from "next/server";
