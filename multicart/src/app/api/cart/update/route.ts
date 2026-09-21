@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
+import Product from "@/models/product.model";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
 
-    const product = await (await import("@/models/product.model")).default.findById(
+    const product = await Product.findById(
       productId
     ).select("title stock");
 
