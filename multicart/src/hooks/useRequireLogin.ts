@@ -12,7 +12,7 @@ export default function useRequireLogin() {
   const isLoading = status === "loading";
 
   const requireLogin = (callbackUrl?: string) => {
-    if (isAuthenticated) return true;
+    if (isAuthenticated) return true;\n    if (isLoading) return false;
 
     const currentUrl =
       callbackUrl ||
