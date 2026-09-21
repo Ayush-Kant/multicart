@@ -22,7 +22,19 @@ interface Message {
   createdAt: string;
 }
 
-export default function SupportPage() {\n  return (\n    <AuthGate\n      callbackUrl="/support"\n      title="Sign in to contact support"\n      description="Support conversations are tied to your account and order history."\n    >\n      <SupportContent />\n    </AuthGate>\n  );\n}\n\nfunction SupportContent() {
+export default function SupportPage() {
+  return (
+    <AuthGate
+      callbackUrl="/support"
+      title="Sign in to contact support"
+      description="Support conversations are tied to your account and order history."
+    >
+      <SupportContent />
+    </AuthGate>
+  );
+}
+
+function SupportContent() {
   const { userData } = useSelector((state: RootState) => state.user);
   const myId = String(userData?._id);
 
