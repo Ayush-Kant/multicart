@@ -12,13 +12,14 @@ import getAllProductsData from "@/hooks/getAllProductsData";
 import { FaUserCircle } from "react-icons/fa";
 
 import axios from "axios";
+import useRequireLogin from "@/hooks/useRequireLogin";
 
 
 export default function ProductViewPage() {
   const params = useParams();
   const id = params.id;
   getAllProductsData()
-  const router = useRouter()
+  const router = useRouter()\n  const { requireLogin } = useRequireLogin()
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewImage, setReviewImage] = useState<File | null>(null);
