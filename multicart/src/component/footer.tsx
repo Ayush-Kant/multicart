@@ -51,6 +51,7 @@ export default function Footer({ user }: { user?: IUser }) {
               <li onClick={() => router.push("/")} className="cursor-pointer hover:text-white">Home</li>
               <li onClick={() => router.push("/category")} className="cursor-pointer hover:text-white">Categories</li>
               <li onClick={() => router.push("/shop")} className="cursor-pointer hover:text-white">Shop</li>
+              <li onClick={() => router.push("/sell")} className="cursor-pointer hover:text-white">Sell on MultiCart</li>
               <li onClick={() => router.push("/contact")} className="cursor-pointer hover:text-white">Contact</li>
             </ul>
           </div>
