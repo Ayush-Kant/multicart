@@ -432,7 +432,6 @@ export default function UpdateProduct() {
 
       </motion.div>
     </motion.div>
-  );
     </RoleGate>
   );
 }
