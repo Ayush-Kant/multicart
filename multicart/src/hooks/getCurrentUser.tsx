@@ -2,11 +2,11 @@
 import { AppDispatch } from '@/redux/store'
 import { setUserData } from '@/redux/userSlice'
 import axios from 'axios'
-import React, { useEffect } from 'react'
+import { useSession } from 'next-auth/react'\nimport React, { useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 
 function getCurrentUser() {
-    const dispatch = useDispatch<AppDispatch>()
+    const dispatch = useDispatch<AppDispatch>()\n    const { status } = useSession()
 useEffect(()=>{
     const fetchUser = async ()=>{
         try {
@@ -19,7 +19,7 @@ useEffect(()=>{
 
     }
     fetchUser()
-},[])
+},[status, dispatch])
 }
 
 export default getCurrentUser
