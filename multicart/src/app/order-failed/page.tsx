@@ -5,7 +5,19 @@ import { FaTimesCircle } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import AuthGate from "@/component/auth/AuthGate";
 
-export default function PaymentFailedPage() {\n  return (\n    <AuthGate\n      callbackUrl="/order-failed"\n      title="Sign in to continue with your order"\n      description="Your payment attempt is tied to your account and checkout session."\n    >\n      <PaymentFailedContent />\n    </AuthGate>\n  );\n}\n\nfunction PaymentFailedContent() {
+export default function PaymentFailedPage() {
+  return (
+    <AuthGate
+      callbackUrl="/order-failed"
+      title="Sign in to continue with your order"
+      description="Your payment attempt is tied to your account and checkout session."
+    >
+      <PaymentFailedContent />
+    </AuthGate>
+  );
+}
+
+function PaymentFailedContent() {
   const router = useRouter();
 
   return (
