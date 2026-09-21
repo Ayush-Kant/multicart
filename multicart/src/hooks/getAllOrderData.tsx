@@ -23,7 +23,7 @@ function getAllOrdersData() {
     };
 
     fetchAllOrders();
-  }, [userData]);
+  }, [userData, dispatch]);
 }
 
 export default getAllOrdersData;
