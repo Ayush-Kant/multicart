@@ -47,6 +47,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
+
+    const product = await (await import("@/models/product.model")).default.findById(
+      productId
+    ).select("title stock");
+
+    if (!product) {
+      return NextResponse.json(
+        { message: "Product not found" },
+        { status: 404 }
+      );
+    }
+
+    if (quantity > product.stock) {
+      return NextResponse.json(
+        {
+          message: `Only ${product.stock} unit(s) of ${product.title} are available.`,
+        },
+        { status: 409 }
+      );
+    }
+
     item.quantity = quantity;
 
     await user.save();
