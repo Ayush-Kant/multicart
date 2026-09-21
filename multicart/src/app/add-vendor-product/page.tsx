@@ -156,6 +156,13 @@ export default function AddProduct() {
   };
 
   return (
+    <RoleGate
+      allowedRoles="vendor"
+      callbackUrl="/add-vendor-product"
+      title="Vendor access required"
+      description="Only approved seller accounts can add marketplace products."
+    >
+
     <motion.div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white px-4 pt-20 pb-10">
       <motion.div className="max-w-3xl mx-auto bg-white/10 backdrop-blur-xl p-6 sm:p-10 rounded-2xl border border-white/20 shadow-xl">
 
@@ -338,5 +345,7 @@ export default function AddProduct() {
 
       </motion.div>
     </motion.div>
+  );
+    </RoleGate>
   );
 }
